@@ -1,0 +1,180 @@
+@import "tailwindcss";
+
+/* ── Design Tokens (Tailwind v4 @theme) ──────────── */
+@theme {
+  /* Colors — Dark mode Midnight Gold */
+  --color-midnight: #0B0B0D;
+  --color-midnight-charcoal: #141417;
+  --color-midnight-graphite: #1E1E24;
+  --color-midnight-elevated: #28282F;
+
+  --color-gold: #D4A85A;
+  --color-gold-light: #F2D28B;
+  --color-gold-muted: #C8A96B;
+
+  --color-ivory: #F7F3EA;
+  --color-ivory-secondary: #9E9A92;
+  --color-ivory-muted: #5A5852;
+
+  /* Light mode */
+  --color-linen: #F6F3EE;
+  --color-linen-soft: #ECE6DA;
+  --color-espresso: #2B2B2F;
+
+  /* Typography */
+  --font-display: "Cormorant Garamond", Georgia, serif;
+  --font-sans: "DM Sans", system-ui, sans-serif;
+
+  /* Border radius */
+  --radius-card: 16px;
+  --radius-btn: 12px;
+
+  /* Shadows */
+  --shadow-gold: 0 0 20px rgba(212,168,90,0.15);
+  --shadow-gold-lg: 0 0 40px rgba(212,168,90,0.2);
+  --shadow-card: 0 8px 32px rgba(0,0,0,0.4);
+
+  /* Animations */
+  --animate-shimmer: shimmer 1.8s linear infinite;
+  --animate-record-pulse: recordPulse 1.5s ease-in-out infinite;
+  --animate-float: float 3s ease-in-out infinite;
+  --animate-spin-slow: spin 8s linear infinite;
+}
+
+/* ── Keyframes ────────────────────────────────────── */
+@keyframes shimmer {
+  0%   { background-position: -200% 0; }
+  100% { background-position:  200% 0; }
+}
+@keyframes recordPulse {
+  0%, 100% { opacity: 1; transform: scale(1); }
+  50%       { opacity: 0.5; transform: scale(1.15); }
+}
+@keyframes float {
+  0%, 100% { transform: translateY(0); }
+  50%       { transform: translateY(-6px); }
+}
+
+/* ── Base ─────────────────────────────────────────── */
+*, *::before, *::after { box-sizing: border-box; }
+html { font-size: 16px; scroll-behavior: smooth; }
+body {
+  margin: 0;
+  background-color: #0B0B0D;
+  color: #F7F3EA;
+  font-family: "DM Sans", system-ui, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  overflow-x: hidden;
+}
+
+::selection { background: rgba(212,168,90,0.25); color: #F7F3EA; }
+
+/* ── Scrollbar ────────────────────────────────────── */
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #141417; }
+::-webkit-scrollbar-thumb { background: rgba(212,168,90,0.3); border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: rgba(212,168,90,0.5); }
+
+/* ── Utility classes ──────────────────────────────── */
+.font-display { font-family: "Cormorant Garamond", Georgia, serif; }
+
+.glass {
+  background: rgba(30,30,36,0.6);
+  border: 1px solid rgba(212,168,90,0.15);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+}
+
+.glass-hover {
+  transition: all 0.3s cubic-bezier(0.4,0,0.2,1);
+}
+.glass-hover:hover {
+  border-color: rgba(212,168,90,0.35);
+  box-shadow: 0 12px 48px rgba(0,0,0,0.5), 0 0 20px rgba(212,168,90,0.1);
+  transform: translateY(-2px);
+}
+
+.text-gold-gradient {
+  background: linear-gradient(135deg, #D4A85A, #F2D28B);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+.bg-gold-gradient { background: linear-gradient(135deg, #D4A85A, #F2D28B); }
+.bg-dark-gradient { background: linear-gradient(180deg, #0B0B0D 0%, #141417 100%); }
+
+.glow-gold    { box-shadow: 0 0 20px rgba(212,168,90,0.15); }
+.glow-gold-lg { box-shadow: 0 0 40px rgba(212,168,90,0.2), 0 0 80px rgba(212,168,90,0.05); }
+
+/* ── Skeleton ─────────────────────────────────────── */
+.skeleton {
+  background: linear-gradient(
+    90deg,
+    rgba(30,30,36,0.8) 25%,
+    rgba(212,168,90,0.06) 50%,
+    rgba(30,30,36,0.8) 75%
+  );
+  background-size: 200% 100%;
+  animation: shimmer 1.8s linear infinite;
+  border-radius: 8px;
+}
+
+/* ── Recording pulse ──────────────────────────────── */
+.record-pulse { animation: recordPulse 1.5s ease-in-out infinite; }
+
+/* ── Input ────────────────────────────────────────── */
+.input-gold {
+  background: rgba(30,30,36,0.8);
+  border: 1px solid rgba(212,168,90,0.2);
+  color: #F7F3EA;
+  border-radius: 10px;
+  padding: 12px 16px;
+  font-family: "DM Sans", sans-serif;
+  font-size: 15px;
+  transition: border-color 0.2s, box-shadow 0.2s;
+  width: 100%;
+  outline: none;
+}
+.input-gold::placeholder { color: #5A5852; }
+.input-gold:focus {
+  border-color: rgba(212,168,90,0.5);
+  box-shadow: 0 0 0 3px rgba(212,168,90,0.08);
+}
+
+/* ── Teleprompter ─────────────────────────────────── */
+.teleprompter-active {
+  color: #F7F3EA;
+  border-left: 3px solid #D4A85A;
+  padding-left: 16px;
+}
+
+/* ── Tab underline ────────────────────────────────── */
+.tab-active   { color: #D4A85A; border-bottom: 2px solid #D4A85A; }
+.tab-inactive { color: #9E9A92; border-bottom: 2px solid transparent; }
+.tab-inactive:hover { color: #F7F3EA; }
+
+/* ── Score bar ────────────────────────────────────── */
+.score-bar-fill {
+  height: 4px;
+  border-radius: 2px;
+  background: linear-gradient(90deg, #D4A85A, #F2D28B);
+}
+
+/* ── Focus ring ───────────────────────────────────── */
+:focus-visible { outline: 2px solid #D4A85A; outline-offset: 2px; }
+
+/* ── Mobile safe bottom ───────────────────────────── */
+@media (max-width: 768px) {
+  .mobile-safe-bottom { padding-bottom: env(safe-area-inset-bottom, 16px); }
+}
+
+/* ── Rounded card/btn utilities ───────────────────── */
+.rounded-card { border-radius: 16px; }
+.rounded-btn  { border-radius: 12px; }
+
+/* ── Shadow utilities ─────────────────────────────── */
+.shadow-gold    { box-shadow: 0 0 20px rgba(212,168,90,0.15); }
+.shadow-gold-lg { box-shadow: 0 0 40px rgba(212,168,90,0.2); }
+.shadow-card    { box-shadow: 0 8px 32px rgba(0,0,0,0.4); }
