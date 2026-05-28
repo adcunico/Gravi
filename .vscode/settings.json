@@ -1,0 +1,30 @@
+{
+  "editor.defaultFormatter": "esbenp.prettier-vscode",
+  "[typescript]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "[typescriptreact]": {
+    "editor.defaultFormatter": "esbenp.prettier-vscode"
+  },
+  "copilot.advanced": {
+    "mcp": {
+      "servers": {
+        "supabase": {
+          "command": "npx",
+          "args": ["@supabase/mcp-server"],
+          "env": {
+            "SUPABASE_URL": "${env:SUPABASE_URL}",
+            "SUPABASE_SERVICE_ROLE_KEY": "${env:SUPABASE_SERVICE_ROLE_KEY}"
+          }
+        },
+        "openai": {
+          "command": "npx",
+          "args": ["@modelcontextprotocol/server-openai"],
+          "env": {
+            "OPENAI_API_KEY": "${env:OPENAI_API_KEY}"
+          }
+        }
+      }
+    }
+  }
+}

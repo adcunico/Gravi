@@ -13,6 +13,7 @@ export default function SignUp() {
   const [loading, setLoading] = useState(false)
   const [error, setError] = useState('')
   const [success, setSuccess] = useState(false)
+  const [confirmationRequired, setConfirmationRequired] = useState(false)
   const navigate = useNavigate()
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -23,10 +24,11 @@ export default function SignUp() {
     try {
       const { error: err, data } = await signUpWithEmail(email, password)
       if (err) throw err
-      if (data.user) {
-        // Store name for onboarding
-        localStorage.setItem('gravi_signup_name', name)
-        setSuccess(true)
+      localStorage.setItem('gravi_signup_name', name)
+      setSuccess(true)
+      if (!data?.user) {
+        setConfirmationRequired(true)
+      } else {
         setTimeout(() => navigate('/onboarding'), 2000)
       }
     } catch (err: unknown) {
@@ -52,7 +54,11 @@ export default function SignUp() {
             <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="#D4A85A" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
           </div>
           <h2 className="font-display text-2xl text-ivory">Welcome to Gravi</h2>
-          <p className="text-sm text-ivory-secondary">Preparing your studio…</p>
+          <p className="text-sm text-ivory-secondary">
+            {confirmationRequired
+              ? 'Check your email to confirm your account and complete signup.'
+              : 'Preparing your studio…'}
+          </p>
         </motion.div>
       </div>
     )
