@@ -19,7 +19,7 @@ serve(async (req) => {
     const userPrompt = `Write a ${length_minutes}-minute ${occasion} speech about: "${topic}".${key_points ? `\n\nKey points to include:\n${key_points}` : ''}\n\nTarget word count: ${Math.round(length_minutes * 130)} words. Strong opening, clear body, powerful close.`
 
     const message = await client.messages.create({
-      model: 'claude-opus-4-7',
+      model: 'claude-sonnet-4-6',
       max_tokens: 2000,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],

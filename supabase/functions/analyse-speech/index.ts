@@ -58,7 +58,7 @@ Return this exact JSON structure:
 Be analytically precise. Feedback must be specific, actionable, and professional. Never be vague.`
 
     const message = await client.messages.create({
-      model: 'claude-opus-4-7',
+      model: 'claude-sonnet-4-6',
       max_tokens: 2000,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],

@@ -10,6 +10,9 @@ import Landing from '@/pages/Landing'
 import SignIn from '@/pages/auth/SignIn'
 import SignUp from '@/pages/auth/SignUp'
 import ForgotPassword from '@/pages/auth/ForgotPassword'
+import ResetPassword from '@/pages/auth/ResetPassword'
+import Terms from '@/pages/Terms'
+import Privacy from '@/pages/Privacy'
 import Dashboard from '@/pages/Dashboard'
 
 // Lazy loaded routes
@@ -109,6 +112,11 @@ export default function App() {
                 <Route path="/debate/session" element={<TeleprompterSession />} />
               </Route>
             </Route>
+
+            {/* Open public routes — no auth guard, accessible to all */}
+            <Route path="/reset-password" element={<ResetPassword />} />
+            <Route path="/terms" element={<Terms />} />
+            <Route path="/privacy" element={<Privacy />} />
 
             {/* Catch-all */}
             <Route path="*" element={<Navigate to="/" replace />} />

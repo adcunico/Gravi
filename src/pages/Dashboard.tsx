@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useAuthStore } from '@/stores/useAuthStore'
 import { getSessions } from '@/lib/supabase'
@@ -18,6 +18,25 @@ function greeting() {
   if (h < 12) return 'Good morning'
   if (h < 18) return 'Good afternoon'
   return 'Good evening'
+}
+
+function calculateStreak(sessions: SessionRow[]): number {
+  if (!sessions.length) return 0
+  const days = [...new Set(sessions.map((s) => s.created_at.slice(0, 10)))].sort((a, b) =>
+    b.localeCompare(a),
+  )
+  const todayStr = new Date().toISOString().slice(0, 10)
+  const yesterdayStr = new Date(Date.now() - 86400000).toISOString().slice(0, 10)
+  if (days[0] !== todayStr && days[0] !== yesterdayStr) return 0
+  let streak = 1
+  for (let i = 1; i < days.length; i++) {
+    const diff = Math.round(
+      (new Date(days[i - 1]).getTime() - new Date(days[i]).getTime()) / 86400000,
+    )
+    if (diff === 1) streak++
+    else break
+  }
+  return streak
 }
 
 const FEATURE_CARDS = [
@@ -67,8 +86,10 @@ const DNA_METRICS = [
 export default function Dashboard() {
   const { user, profile } = useAuthStore()
   const navigate = useNavigate()
+  const [searchParams, setSearchParams] = useSearchParams()
   const [sessions, setSessions] = useState<SessionRow[]>([])
   const [loading, setLoading] = useState(true)
+  const [showUpgradeBanner, setShowUpgradeBanner] = useState(searchParams.get('upgraded') === '1')
 
   useEffect(() => {
     if (!user) return
@@ -77,6 +98,14 @@ export default function Dashboard() {
       setLoading(false)
     })
   }, [user])
+
+  // Clear ?upgraded=1 from URL without a page reload
+  useEffect(() => {
+    if (searchParams.get('upgraded') === '1') {
+      searchParams.delete('upgraded')
+      setSearchParams(searchParams, { replace: true })
+    }
+  }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const lastName = profile?.full_name?.split(' ').pop() || 'there'
   const latestAnalysis = sessions[0]?.analysis
@@ -94,10 +123,33 @@ export default function Dashboard() {
   )
 
   const totalMins = Math.round(sessions.reduce((a, s) => a + (s.duration_seconds || 0), 0) / 60)
-  const streak = 3 // TODO: calculate real streak
+  const streak = calculateStreak(sessions)
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-screen-xl mx-auto space-y-8">
+      {/* Pro upgrade success banner */}
+      {showUpgradeBanner && (
+        <motion.div
+          initial={{ opacity: 0, y: -12 }}
+          animate={{ opacity: 1, y: 0 }}
+          className="flex items-center justify-between gap-4 rounded-xl border border-gold/40 bg-gold/8 px-5 py-3"
+        >
+          <div className="flex items-center gap-3">
+            <span className="text-gold text-lg">✦</span>
+            <p className="text-sm font-sans text-ivory">
+              <span className="font-semibold text-gold">Welcome to Gravi Pro.</span> Unlimited sessions, advanced analytics, and PDF export are now active.
+            </p>
+          </div>
+          <button
+            onClick={() => setShowUpgradeBanner(false)}
+            className="text-ivory-muted hover:text-ivory transition-colors flex-shrink-0"
+            aria-label="Dismiss"
+          >
+            <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+          </button>
+        </motion.div>
+      )}
+
       {/* Header */}
       <motion.div
         initial={{ opacity: 0, y: -10 }}

@@ -1,11 +1,10 @@
 import { useState } from 'react'
-import { Link, useNavigate } from 'react-router-dom'
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import GraviLogo from '@/components/ui/GraviLogo'
 import Button from '@/components/ui/Button'
 import { Input } from '@/components/ui/Input'
 import { signInWithEmail, signInWithGoogle } from '@/lib/supabase'
-import { useAuthStore } from '@/stores/useAuthStore'
 
 export default function SignIn() {
   const [email, setEmail] = useState('')
@@ -13,8 +12,6 @@ export default function SignIn() {
   const [loading, setLoading] = useState(false)
   const [googleLoading, setGoogleLoading] = useState(false)
   const [error, setError] = useState('')
-  const navigate = useNavigate()
-  const { profile } = useAuthStore()
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -23,8 +20,7 @@ export default function SignIn() {
     try {
       const { error: err } = await signInWithEmail(email, password)
       if (err) throw err
-      // Auth state change handled by store listener
-      navigate(profile?.onboarding_complete === false ? '/onboarding' : '/dashboard')
+      // PublicGuard redirects once onAuthStateChange fires and profile is loaded
     } catch (err: unknown) {
       setError(err instanceof Error ? err.message : 'Sign in failed. Please try again.')
     } finally {

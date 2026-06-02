@@ -205,7 +205,7 @@ export default function Analytics() {
       )}
 
       {/* Pro gate for history */}
-      {!isPro && sessions.length > 1 && (
+      {!isPro && sessions.length >= 3 && (
         <GlassCard gold padding="md" className="text-center space-y-3">
           <p className="text-sm text-ivory-secondary">Full analytics history and trend charts require Gravi Pro</p>
           <button onClick={() => window.location.href = '/upgrade'} className="text-sm text-gold hover:text-gold-light transition-colors">

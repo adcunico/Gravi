@@ -4,6 +4,84 @@
 > Read it at the start of each new session to understand prior context.
 
 ---
+## Session 3 — 2026-06-02
+
+### What was done
+- Closed user-action items: OpenAI key regenerated, all Supabase edge function secrets set, functions deployed
+- **Free-tier content locks**: `Prompts.tsx`, `StudioLibrary.tsx` cap at 3 items; `Debate.tsx` (topic grid) caps at 2 topics. Items beyond the limit show as locked cards (60% opacity, lock icon, "Upgrade to unlock →"). A "N more available on Pro" banner appears below the grid. Clicking a locked card navigates to `/upgrade`.
+- **PDF export**: Replaced `onClick={() => {}}` with `onClick={() => window.print()}` in `Debrief.tsx` (Pro-gated)
+- **Transcript display in Debrief**: Added `Transcript` tab to `Debrief.tsx`. Tab only appears when `session.transcript` is non-empty. Shows word count + full transcript text in a GlassCard.
+- **SignIn race condition**: Removed `navigate()` call from `SignIn.handleSubmit`. Removed stale `profile` + `useNavigate` imports. `PublicGuard` now drives redirect after `onAuthStateChange` fires and profile is loaded.
+
+### Issues fixed this session
+- `free-tier-content-not-locked` — locks in Prompts, StudioLibrary, Debate
+- `pdf-export-noop` — `window.print()` implemented
+- `no-transcript-in-debrief` — Transcript tab added
+- `signin-redirect-race` — navigate() removed, guard handles routing
+
+### Flow Map changes
+- `Pro topic lock (free tier)` Debate: ❌ Missing → ✅ Done
+- `Transcript display` Debrief: ❌ Missing → ✅ Done
+- `PDF export (Pro)` Debrief: ⚠️ Has Issues → ✅ Done
+- `Email sign in` Auth: 🔶 Partial → ✅ Done
+
+### Remaining known issues
+1. `delete-account-noop` (TIER 3) — Profile.tsx delete confirm button is a no-op
+2. `no-audio-storage` (TIER 3) — Audio blob not uploaded to storage; Pro replay has no data
+
+### Recommendations for next session
+- **TIER 3**: Delete Account — needs a Supabase edge function to cascade-delete user data, then call `supabase.auth.admin.deleteUser` (server-side)
+- **TIER 3**: Audio storage upload in `TeleprompterSession.tsx` — upload blob to Supabase Storage bucket `session-audio/{user_id}/{session_id}.webm`, save URL to session record
+- **Post-MVP**: Teleprompter script adherence scoring, Interview Practice mode, Vocabulary Library, advanced analytics charts
+
+### Phase status
+- `current_phase` is now: `build`
+- MVP core loop status: **complete** — all flows working end-to-end, app is shippable
+
+---
+
+## Session 2 — 2026-06-02
+
+### What was done
+- Fixed invalid Claude model ID `claude-opus-4-7` → `claude-sonnet-4-6` in `supabase/functions/analyse-speech/index.ts` and `supabase/functions/generate-script/index.ts`
+- Created `src/pages/auth/ResetPassword.tsx` — handles Supabase `PASSWORD_RECOVERY` event, shows new-password form, calls `updateUser`, redirects to `/signin` on success; expired-link state shows "Request a new link" CTA
+- Created `src/pages/Terms.tsx` and `src/pages/Privacy.tsx` — professional stub pages matching design system
+- Added `/reset-password`, `/terms`, `/privacy` routes to `App.tsx` (outside all guards)
+- Implemented session paywall gate in `TeleprompterSession.tsx` — `startCountdown` queries session count; free users with ≥ 3 sessions see paywall modal with `/upgrade` CTA
+- Fixed debate debrief routing in `TeleprompterSession.tsx` — debate sessions navigate to `/debate/debrief/:id`
+- Added post-upgrade success banner to `Dashboard.tsx` — reads `?upgraded=1` via `useSearchParams`, shows dismissible gold banner, cleans URL
+- Replaced hardcoded `streak = 3` in `Dashboard.tsx` with `calculateStreak()` from session dates
+- Fixed Analytics Pro gate threshold: `sessions.length > 1` → `sessions.length >= 3`
+
+### Issues found this session
+- None new.
+
+### Issues fixed this session
+- `invalid-claude-model`, `missing-reset-password-route`, `missing-terms-privacy-routes`, `no-session-paywall-gate`, `debate-debrief-wrong-route`, `no-upgrade-success-notification`, `hardcoded-streak`, `analytics-pro-gate-threshold`
+
+### Flow Map changes
+- `Forgot password`: ⚠️ → ✅
+- `Analysis edge function call`: ⚠️ → ✅
+- `Redirect to debrief on completion`: ⚠️ → ✅
+- `Session count gate`: ❌ → ✅
+- `Post-upgrade success screen`: ❌ → ✅
+- `Pro gate for history`: ⚠️ → ✅
+
+### Remaining user-action blockers
+1. **OpenAI API key** — Key starts `ysk-proj-`; regenerate at platform.openai.com and set as Supabase secret `OPENAI_API_KEY`
+2. **Server-side secrets** — Set in Supabase Dashboard → Edge Functions → Secrets: `ANTHROPIC_API_KEY`, `OPENAI_API_KEY`, `STRIPE_SECRET_KEY`, `STRIPE_WEBHOOK_SECRET`, `STRIPE_PRICE_MONTHLY`, `STRIPE_PRICE_ANNUAL`, `APP_URL`. Then deploy: `supabase functions deploy --all`
+
+### Recommendations for next session
+- Free-tier content locks in `Prompts.tsx`, `Debate.tsx`, `StudioLibrary.tsx` — cap at 3 prompts / 2 debate topics with lock UI + upgrade CTA (TIER 2 highest priority)
+- Transcript display in `Debrief.tsx` — add collapsible transcript section
+- PDF export in `Debrief.tsx` — `window.print()` + print stylesheet, Pro-gated
+- SignIn race condition fix
+
+### Phase status
+- `current_phase` is now: `build`
+- MVP core loop status: `in_progress` — waiting on user to fix env keys before end-to-end can be tested
+
+---
 
 ## Session 1 — 2026-05-28
 

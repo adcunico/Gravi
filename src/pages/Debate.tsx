@@ -75,6 +75,7 @@ export default function Debate() {
     navigate('/debate/session')
   }
 
+  const isPro = profile?.subscription_status === 'pro'
   const filtered = topics.filter((t) =>
     category === 'All' || t.category.toLowerCase() === category.toLowerCase()
   )
@@ -173,21 +174,51 @@ export default function Debate() {
         {loading ? (
           <div className="grid sm:grid-cols-2 gap-4">{[...Array(4)].map((_, i) => <SkeletonCard key={i} />)}</div>
         ) : (
-          <div className="grid sm:grid-cols-2 gap-4">
-            {filtered.map((t, i) => (
-              <motion.div key={t.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
-                <GlassCard hover padding="md" className="flex flex-col gap-3 h-full cursor-pointer" onClick={() => { setSelectedTopic(t); setPhase('detail') }}>
-                  <div className="flex gap-2">
-                    <Badge variant="gold">{t.category}</Badge>
-                    <Badge variant="subtle">{t.difficulty}</Badge>
-                  </div>
-                  <h3 className="font-display text-lg text-ivory">{t.title}</h3>
-                  <p className="text-sm text-ivory-secondary line-clamp-2">{t.description}</p>
-                  <span className="text-xs text-gold">Select topic →</span>
-                </GlassCard>
-              </motion.div>
-            ))}
-          </div>
+          <>
+            <div className="grid sm:grid-cols-2 gap-4">
+              {filtered.map((t, i) => {
+                const isLocked = !isPro && i >= 2
+                return (
+                  <motion.div key={t.id} initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: i * 0.04 }}>
+                    {isLocked ? (
+                      <GlassCard padding="md" className="flex flex-col gap-3 h-full opacity-60 cursor-pointer" onClick={() => navigate('/upgrade')}>
+                        <div className="flex items-start justify-between gap-2">
+                          <div className="flex gap-2">
+                            <Badge variant="gold">{t.category}</Badge>
+                            <Badge variant="subtle">{t.difficulty}</Badge>
+                          </div>
+                          <div className="w-6 h-6 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center flex-shrink-0">
+                            <svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="#D4A85A" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                          </div>
+                        </div>
+                        <h3 className="font-display text-lg text-ivory">{t.title}</h3>
+                        <p className="text-sm text-ivory-secondary line-clamp-2">{t.description}</p>
+                        <span className="text-xs text-gold font-sans">Upgrade to unlock →</span>
+                      </GlassCard>
+                    ) : (
+                      <GlassCard hover padding="md" className="flex flex-col gap-3 h-full cursor-pointer" onClick={() => { setSelectedTopic(t); setPhase('detail') }}>
+                        <div className="flex gap-2">
+                          <Badge variant="gold">{t.category}</Badge>
+                          <Badge variant="subtle">{t.difficulty}</Badge>
+                        </div>
+                        <h3 className="font-display text-lg text-ivory">{t.title}</h3>
+                        <p className="text-sm text-ivory-secondary line-clamp-2">{t.description}</p>
+                        <span className="text-xs text-gold">Select topic →</span>
+                      </GlassCard>
+                    )}
+                  </motion.div>
+                )
+              })}
+            </div>
+            {!isPro && filtered.length > 2 && (
+              <div className="flex items-center justify-between rounded-xl border border-gold/25 bg-gold/5 px-5 py-4">
+                <p className="text-sm text-ivory-secondary">
+                  <span className="text-gold font-semibold">{filtered.length - 2} more topics</span> available on Pro
+                </p>
+                <Button size="sm" onClick={() => navigate('/upgrade')}>Upgrade →</Button>
+              </div>
+            )}
+          </>
         )}
       </div>
     )

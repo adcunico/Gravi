@@ -12,7 +12,7 @@ import { useAuthStore } from '@/stores/useAuthStore'
 import type { Session, Analysis } from '@/types'
 import { SCORE_LABEL } from '@/types'
 
-type Tab = 'overview' | 'delivery' | 'content' | 'voice' | 'debate'
+type Tab = 'overview' | 'delivery' | 'content' | 'voice' | 'debate' | 'transcript'
 
 export default function Debrief() {
   const { sessionId } = useParams<{ sessionId: string }>()
@@ -58,20 +58,27 @@ export default function Debrief() {
   }
 
   const score = analysis.overall_score
-  const tabs: { id: Tab; label: string }[] = session?.mode === 'debate'
-    ? [
-        { id: 'overview', label: 'Overview' },
-        { id: 'delivery', label: 'Delivery' },
-        { id: 'debate', label: 'Debate' },
-        { id: 'content', label: 'Content' },
-        { id: 'voice', label: 'Voice' },
-      ]
-    : [
-        { id: 'overview', label: 'Overview' },
-        { id: 'delivery', label: 'Delivery' },
-        { id: 'content', label: 'Content' },
-        { id: 'voice', label: 'Voice' },
-      ]
+  const transcriptTab: { id: Tab; label: string } | null = session?.transcript
+    ? { id: 'transcript', label: 'Transcript' }
+    : null
+
+  const tabs: { id: Tab; label: string }[] = [
+    ...(session?.mode === 'debate'
+      ? [
+          { id: 'overview' as Tab, label: 'Overview' },
+          { id: 'delivery' as Tab, label: 'Delivery' },
+          { id: 'debate' as Tab, label: 'Debate' },
+          { id: 'content' as Tab, label: 'Content' },
+          { id: 'voice' as Tab, label: 'Voice' },
+        ]
+      : [
+          { id: 'overview' as Tab, label: 'Overview' },
+          { id: 'delivery' as Tab, label: 'Delivery' },
+          { id: 'content' as Tab, label: 'Content' },
+          { id: 'voice' as Tab, label: 'Voice' },
+        ]),
+    ...(transcriptTab ? [transcriptTab] : []),
+  ]
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-3xl mx-auto space-y-8">
@@ -89,7 +96,7 @@ export default function Debrief() {
           </div>
           <div className="flex gap-2">
             {isPro ? (
-              <Button variant="ghost" size="sm" onClick={() => {}}>
+              <Button variant="ghost" size="sm" onClick={() => window.print()}>
                 <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
                 Export PDF
               </Button>
@@ -265,6 +272,19 @@ export default function Debrief() {
                 </div>
                 <p className="text-xs text-ivory-muted">Ideal range for professional speech: 120–160 WPM</p>
               </div>
+            </GlassCard>
+          )}
+          {tab === 'transcript' && session?.transcript && (
+            <GlassCard>
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="font-sans font-semibold text-ivory">Transcript</h3>
+                <span className="text-xs text-ivory-muted">
+                  {session.transcript.split(/\s+/).filter(Boolean).length} words
+                </span>
+              </div>
+              <p className="text-sm text-ivory-secondary leading-relaxed whitespace-pre-wrap font-sans">
+                {session.transcript}
+              </p>
             </GlassCard>
           )}
         </motion.div>

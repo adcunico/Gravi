@@ -66,6 +66,7 @@ Speak confidently for ${debateFormat} minutes.`
   const [speed, setSpeed] = useState<'slow' | 'medium' | 'fast'>('medium')
   const [wpm, setWpm] = useState(0)
   const [showMicModal, setShowMicModal] = useState(false)
+  const [showPaywall, setShowPaywall] = useState(false)
   const [webGLSupported, setWebGLSupported] = useState(true)
   const [processStatus, setProcessStatus] = useState<string[]>([])
 
@@ -139,7 +140,18 @@ Speak confidently for ${debateFormat} minutes.`
     }
   }, [script, speed, lines.length])
 
-  const startCountdown = useCallback(() => {
+  const startCountdown = useCallback(async () => {
+    // Block free users after 3 sessions
+    if (profile?.subscription_status !== 'pro') {
+      const { count } = await supabase
+        .from('sessions')
+        .select('*', { count: 'exact', head: true })
+        .eq('user_id', user!.id)
+      if ((count ?? 0) >= 3) {
+        setShowPaywall(true)
+        return
+      }
+    }
     setState('countdown')
     setCountdown(3)
     let c = 3
@@ -151,7 +163,7 @@ Speak confidently for ${debateFormat} minutes.`
         beginRecording()
       }
     }, 1000)
-  }, [beginRecording])
+  }, [beginRecording, profile, user])
 
   const pause = useCallback(() => {
     setState('paused')
@@ -251,7 +263,7 @@ Speak confidently for ${debateFormat} minutes.`
       }
 
       clearInterval(statusTimer)
-      navigate(`/studio/debrief/${sessionData.id}`)
+      navigate(`/${isDebate ? 'debate' : 'studio'}/debrief/${sessionData.id}`)
     } catch (err) {
       console.error('Processing error:', err)
       clearInterval(statusTimer)
@@ -478,6 +490,22 @@ Speak confidently for ${debateFormat} minutes.`
           </>
         )}
       </div>
+
+      {/* Session limit paywall modal */}
+      <Modal open={showPaywall} onClose={() => setShowPaywall(false)} title="You've reached your session limit">
+        <div className="space-y-4">
+          <p className="text-sm text-ivory-secondary leading-relaxed">
+            Free accounts include 3 sessions. Upgrade to Gravi Pro for unlimited sessions, advanced analytics, PDF export, and audio replay.
+          </p>
+          <Button fullWidth onClick={() => navigate('/upgrade')}>View Plans →</Button>
+          <button
+            onClick={() => setShowPaywall(false)}
+            className="w-full text-sm text-ivory-muted hover:text-ivory transition-colors text-center"
+          >
+            Maybe later
+          </button>
+        </div>
+      </Modal>
 
       {/* Mic permission modal */}
       <Modal open={showMicModal} onClose={() => { setShowMicModal(false); setState('idle') }} title="Microphone Access Needed">

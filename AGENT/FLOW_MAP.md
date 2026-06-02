@@ -13,9 +13,9 @@
 | Sign Up → Onboarding | 🔶 Partial | Works, but if Supabase email confirmation is on, user must click link first |
 | Onboarding → Dashboard | ✅ Done | 3-step flow saves profile, redirects correctly |
 | Dashboard → Record | ✅ Done | Feature cards navigate to /studio |
-| Record → Processing → Debrief | ⚠️ Has Issues | Flow wired up BUT: Claude model ID `claude-opus-4-7` is invalid → analysis fails; OpenAI key looks corrupted (`ysk-`) → transcription fails |
-| Debrief → Paywall (after 3rd session) | ❌ Missing | No session count gate implemented in recording flow |
-| Upgrade → Stripe → Success | 🔶 Partial | Checkout wired; success redirect to `/dashboard?upgraded=1` exists; Dashboard doesn't handle the param — no success notification |
+| Record → Processing → Debrief | ⚠️ Has Issues | Claude model ID fixed. BUT: OpenAI key still looks corrupted (`ysk-`) → transcription will fail until user regenerates key |
+| Debrief → Paywall (after 3rd session) | ✅ Done | Session count gate implemented in TeleprompterSession. Free users see paywall modal after 3 sessions |
+| Upgrade → Stripe → Success | ✅ Done | Post-upgrade gold banner shown on Dashboard when `?upgraded=1` param present |
 
 ---
 
@@ -24,9 +24,9 @@
 | Flow | Status | Notes |
 |------|--------|-------|
 | Email sign up | ✅ Done | Works with email confirmation or instant sign-up depending on Supabase config |
-| Email sign in | 🔶 Partial | Works but has race condition: navigate() uses stale profile from store |
+| Email sign in | ✅ Done | Race condition fixed: removed navigate() from submit handler; PublicGuard drives redirect |
 | Google OAuth | ✅ Done | Implemented, redirects to /dashboard |
-| Forgot password | ⚠️ Has Issues | Form submits correctly, but email link goes to `/reset-password` which does not exist |
+| Forgot password | ✅ Done | Form submits correctly; email link goes to `/reset-password` which now exists |
 | Protected route redirect | ✅ Done | AuthGuard, OnboardingGuard, PublicGuard all correct |
 | Post-login onboarding redirect | 🔶 Partial | OnboardingGuard catches unonboarded users, but SignIn race condition can cause brief flash of /dashboard |
 
@@ -54,10 +54,10 @@
 | Script → sessionStorage → TeleprompterSession | ✅ Done | All 3 paths set sessionStorage and navigate to /studio/session |
 | Live Record (MediaRecorder) | ✅ Done | getUserMedia, MediaRecorder, pause/resume, countdown |
 | Gold waveform | ✅ Done | Three.js waveform + CSS fallback for no-WebGL |
-| Transcription edge function call | ⚠️ Has Issues | Code correct but OpenAI key looks corrupted (starts `ysk-`) |
-| Analysis edge function call | ⚠️ Has Issues | Code correct but `claude-opus-4-7` is an invalid model ID |
+| Transcription edge function call | ⚠️ Has Issues | OpenAI key still corrupted (starts `ysk-`) — user must regenerate |
+| Analysis edge function call | ✅ Done | Model ID fixed to `claude-sonnet-4-6` |
 | Processing overlay (3 steps) | ✅ Done | Step-by-step status messages during processing |
-| Redirect to debrief on completion | ⚠️ Has Issues | Always routes to `/studio/debrief/:id` even for debate sessions |
+| Redirect to debrief on completion | ✅ Done | Routes to `/debate/debrief/:id` for debate; `/studio/debrief/:id` for guided |
 | Error handling (processing fails) | 🔶 Partial | Catches errors, navigates to /sessions, but no user-facing error message |
 | Mic permission denied modal | ✅ Done | Shows modal with explanation |
 
@@ -75,9 +75,9 @@
 | Debate tab (argument + logic + conviction) | ✅ Done | Only shown for debate mode sessions |
 | Vocabulary upgrades panel | ✅ Done | Shows in Overview tab |
 | Filler words panel | ✅ Done | Shows in Delivery tab |
-| Transcript display | ❌ Missing | Stored in DB but never displayed in Debrief |
+| Transcript display | ✅ Done | Transcript tab added to Debrief; shows word count + full text |
 | Audio playback | ❌ Missing | Audio blob not uploaded to storage; no player |
-| PDF export (Pro) | ⚠️ Has Issues | Button shown but `onClick={() => {}}` — no implementation |
+| PDF export (Pro) | ✅ Done | `window.print()` implemented, Pro-gated |
 | Practice Again CTA | ✅ Done | Re-populates sessionStorage and navigates back to /studio/session |
 | New Session / View All Sessions CTAs | ✅ Done | |
 | Loading state | ✅ Done | Skeleton shown while fetching |
@@ -91,7 +91,7 @@
 |------|--------|-------|
 | Entry: Browse Topics / Surprise Me | ✅ Done | Two entry cards, both functional |
 | Topic library grid + filters (category) | ✅ Done | Category chips filter the topic grid |
-| Pro topic lock (free tier) | ❌ Missing | All topics visible to all users — no lock UI |
+| Pro topic lock (free tier) | ✅ Done | First 2 topics free; rest locked with upgrade CTA |
 | AI topic suggestion (generate-topics) | ✅ Done | Calls generate-topics edge function |
 | Position selection (FOR/AGAINST/NEUTRAL) | ✅ Done | Color-coded selection |
 | Format chips (2min / 5min / 10min) | ✅ Done | Labelled Impromptu/Structured/Extended |
@@ -126,7 +126,7 @@
 | Filter by range (7d / 30d / all) | ✅ Done | |
 | Score breakdown grid | ✅ Done | Per-metric glass cards with ScoreBar |
 | Most improved / needs focus insight | ✅ Done | |
-| Pro gate for history | ⚠️ Has Issues | Shows gate if `sessions.length > 1` — should be `>= 3` |
+| Pro gate for history | ✅ Done | Fixed threshold to `sessions.length >= 3` |
 
 ---
 
@@ -134,12 +134,12 @@
 
 | Flow | Status | Notes |
 |------|--------|-------|
-| Session count gate (free = 3 total) | ❌ Missing | No enforcement in recording flow |
+| Session count gate (free = 3 total) | ✅ Done | Enforced in TeleprompterSession; paywall modal shown with upgrade CTA |
 | Pro feature lock modals | 🔶 Partial | PDF export locked, audio replay locked, but no explicit lock modals with upgrade CTAs |
 | Upgrade page (monthly/annual toggle) | ✅ Done | Toggle + comparison table + CTA |
 | Stripe checkout redirect | ✅ Done | create-stripe-checkout edge function wired up |
 | Stripe webhook → update subscription_status | ✅ Done | stripe-webhook edge function updates user record |
-| Post-upgrade success screen | ❌ Missing | Dashboard doesn't handle `?upgraded=1` param |
+| Post-upgrade success screen | ✅ Done | Dashboard shows gold banner on `?upgraded=1` param |
 
 ---
 
@@ -155,4 +155,4 @@
 
 ---
 
-_Last updated by agent: 2026-05-28 (Session 1)_
+_Last updated by agent: 2026-06-02 (Session 3)_
