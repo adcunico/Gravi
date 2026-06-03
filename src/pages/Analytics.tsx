@@ -6,7 +6,6 @@ import ScoreBar from '@/components/ui/ScoreBar'
 import GlassCard from '@/components/ui/GlassCard'
 import Badge from '@/components/ui/Badge'
 import { SkeletonStats } from '@/components/ui/Skeleton'
-import { getSessions } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/useAuthStore'
 import type { Session, Analysis } from '@/types'
 
@@ -23,19 +22,17 @@ const METRICS = [
 ]
 
 export default function Analytics() {
-  const { user, profile } = useAuthStore()
-  const [sessions, setSessions] = useState<SessionRow[]>([])
-  const [loading, setLoading] = useState(true)
+  const { user, profile, sessions: storeSessions, fetchSessions } = useAuthStore()
   const [range, setRange] = useState<Range>('30d')
   const [activeMetric, setActiveMetric] = useState('overall_score')
 
   useEffect(() => {
     if (!user) return
-    getSessions(user.id, 100).then(({ data }) => {
-      setSessions((data as SessionRow[]) || [])
-      setLoading(false)
-    })
+    fetchSessions(user.id)
   }, [user])
+
+  const loading = storeSessions === null
+  const sessions = (storeSessions || []) as SessionRow[]
 
   const isPro = profile?.subscription_status === 'pro'
   const cutoff = range === '7d' ? 7 : range === '30d' ? 30 : 9999

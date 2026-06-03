@@ -39,10 +39,17 @@ export default function Button({
   className = '',
   ...props
 }: Props) {
+  const hoverAnimation =
+    variant === 'gold'
+      ? { boxShadow: '0 0 28px rgba(212,168,90,0.35)' }
+      : variant === 'ghost'
+      ? { backgroundColor: 'rgba(212,168,90,0.06)', borderColor: 'rgba(212,168,90,0.7)' }
+      : { opacity: 0.85 }
+
   return (
     <motion.button
       whileTap={{ scale: 0.97 }}
-      whileHover={{ scale: 1.01 }}
+      whileHover={hoverAnimation}
       transition={{ duration: 0.15 }}
       disabled={disabled || loading}
       className={[

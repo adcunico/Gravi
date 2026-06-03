@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { useParams, useNavigate, Link } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import ScoreGauge from '@/components/ui/ScoreGauge'
@@ -70,6 +70,7 @@ export default function Debrief() {
   }
 
   const score = analysis.overall_score
+  const pacePercent = Math.max(0, Math.min(100, ((analysis.wpm - 60) / 180) * 100))
   const transcriptTab: { id: Tab; label: string } | null = session?.transcript
     ? { id: 'transcript', label: 'Transcript' }
     : null
@@ -124,7 +125,6 @@ export default function Debrief() {
       {/* Score */}
       <motion.div initial={{ opacity: 0, scale: 0.9 }} animate={{ opacity: 1, scale: 1 }} transition={{ delay: 0.1 }} className="flex flex-col items-center gap-3">
         <ScoreGauge score={score} size={160} />
-        <p className="font-display text-xl text-ivory">{SCORE_LABEL(score)}</p>
         <Badge variant={score >= 80 ? 'gold' : 'subtle'}>
           {session.mode.charAt(0).toUpperCase() + session.mode.slice(1)} · {Math.floor((session.duration_seconds || 0) / 60)}m {(session.duration_seconds || 0) % 60}s
         </Badge>
@@ -137,9 +137,11 @@ export default function Debrief() {
             <button
               key={t.id}
               onClick={() => setTab(t.id)}
-              className={`px-5 py-3 text-sm font-sans transition-all duration-200 ${
-                tab === t.id ? 'tab-active' : 'tab-inactive'
-              }`}
+              className={
+                tab === t.id
+                  ? 'border-b-2 border-gold text-ivory pb-3 px-5 text-sm font-sans transition-colors duration-200'
+                  : 'border-b-2 border-transparent text-ivory-muted hover:text-ivory pb-3 px-5 text-sm font-sans transition-colors duration-200'
+              }
             >
               {t.label}
             </button>
@@ -158,57 +160,64 @@ export default function Debrief() {
           className="space-y-6"
         >
           {tab === 'overview' && (
-            <>
-              <GlassCard>
-                <p className="text-sm text-ivory leading-relaxed">{analysis.overall_summary}</p>
-              </GlassCard>
+            <GlassCard>
+              <p className="text-base text-ivory leading-relaxed">{analysis.overall_summary}</p>
 
-              <GlassCard>
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-1 h-5 rounded-full bg-gold" />
-                  <h3 className="font-sans font-semibold text-ivory">Strengths</h3>
+              {analysis.strengths.length > 0 && (
+                <div className="border-t border-white/6 pt-5 mt-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-1 h-4 bg-gold rounded-full" />
+                    <span className="text-xs font-sans text-ivory-secondary uppercase tracking-[0.12em]">Strengths</span>
+                  </div>
+                  <ul className="space-y-2">
+                    {analysis.strengths.map((s, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-ivory-secondary leading-relaxed">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4A85A" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-1"><polyline points="20 6 9 17 4 12"/></svg>
+                        {s}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <ul className="space-y-2">
-                  {analysis.strengths.map((s, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-ivory-secondary">
-                      <span className="text-gold mt-0.5">✓</span> {s}
-                    </li>
-                  ))}
-                </ul>
-              </GlassCard>
+              )}
 
-              <GlassCard>
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="w-1 h-5 rounded-full bg-amber-400" />
-                  <h3 className="font-sans font-semibold text-ivory">Areas to Improve</h3>
+              {analysis.improvements.length > 0 && (
+                <div className="border-t border-white/6 pt-5 mt-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-1 h-4 bg-amber-400/70 rounded-full" />
+                    <span className="text-xs font-sans text-ivory-secondary uppercase tracking-[0.12em]">Areas to Improve</span>
+                  </div>
+                  <ul className="space-y-2">
+                    {analysis.improvements.map((imp, i) => (
+                      <li key={i} className="flex items-start gap-2 text-sm text-ivory-secondary leading-relaxed">
+                        <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="rgba(251,191,36,0.7)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-1"><line x1="12" y1="19" x2="12" y2="5"/><polyline points="5 12 12 5 19 12"/></svg>
+                        {imp}
+                      </li>
+                    ))}
+                  </ul>
                 </div>
-                <ul className="space-y-2">
-                  {analysis.improvements.map((s, i) => (
-                    <li key={i} className="flex items-start gap-2 text-sm text-ivory-secondary">
-                      <span className="text-amber-400 mt-0.5">→</span> {s}
-                    </li>
-                  ))}
-                </ul>
-              </GlassCard>
+              )}
 
-              {analysis.vocabulary_upgrades.length > 0 && (
-                <GlassCard>
-                  <h3 className="font-sans font-semibold text-ivory mb-4">Vocabulary Upgrades</h3>
+              {analysis.vocabulary_upgrades.length > 0 && session.path !== 'upload' && session.path !== 'generate' && (
+                <div className="border-t border-white/6 pt-5 mt-5">
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-1 h-4 bg-white/20 rounded-full" />
+                    <span className="text-xs font-sans text-ivory-secondary uppercase tracking-[0.12em]">Vocabulary Upgrades</span>
+                  </div>
                   <div className="space-y-3">
                     {analysis.vocabulary_upgrades.map((v, i) => (
                       <div key={i} className="text-sm space-y-0.5">
                         <div className="flex items-center gap-2">
                           <span className="text-ivory-muted line-through">{v.original}</span>
-                          <span className="text-ivory-muted">→</span>
+                          <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gold/50"><line x1="5" y1="12" x2="19" y2="12"/><polyline points="12 5 19 12 12 19"/></svg>
                           <span className="text-gold font-medium">{v.suggested}</span>
                         </div>
                         <p className="text-xs text-ivory-muted pl-1">{v.reason}</p>
                       </div>
                     ))}
                   </div>
-                </GlassCard>
+                </div>
               )}
-            </>
+            </GlassCard>
           )}
 
           {tab === 'delivery' && (
@@ -263,12 +272,7 @@ export default function Debrief() {
                     <div className="w-1 h-5 rounded-full bg-gold" />
                     <h3 className="font-sans font-semibold text-ivory">Session Recording</h3>
                   </div>
-                  <audio
-                    controls
-                    src={audioSrc}
-                    className="w-full rounded-lg accent-[#D4A85A]"
-                    style={{ colorScheme: 'dark' }}
-                  />
+                  <AudioPlayer src={audioSrc} />
                 </GlassCard>
               )}
               {isPro && session?.audio_url && !audioSrc && (
@@ -301,13 +305,14 @@ export default function Debrief() {
                       {analysis.pace_rating}
                     </span>
                   </div>
-                  <div className="relative h-2 bg-white/8 rounded-full overflow-hidden">
-                    <div className="absolute left-1/4 right-1/4 h-full bg-gold/20 rounded-full" />
+                  <div className="relative h-2 bg-white/8 rounded-full">
+                    <div className="absolute h-full bg-gold/20 rounded-full" style={{ left: '33%', right: '44%' }} />
+                    {[80, 120, 160, 200].map(tick => (
+                      <div key={tick} className="absolute top-0 w-px h-2 bg-white/20" style={{ left: `${((tick - 60) / 180) * 100}%` }} />
+                    ))}
                     <div
                       className="absolute h-4 w-1 bg-gold rounded-full -top-1 transition-all"
-                      style={{
-                        left: analysis.pace_rating === 'too slow' ? '10%' : analysis.pace_rating === 'too fast' ? '85%' : '50%',
-                      }}
+                      style={{ left: `${pacePercent}%` }}
                     />
                   </div>
                   <div className="flex justify-between text-xs text-ivory-muted mt-1">
@@ -353,6 +358,62 @@ export default function Debrief() {
         <Link to="/sessions" className="text-sm text-gold hover:text-gold-light transition-colors self-center ml-auto">
           View All Sessions →
         </Link>
+      </div>
+    </div>
+  )
+}
+
+function AudioPlayer({ src }: { src: string }) {
+  const audioRef = useRef<HTMLAudioElement>(null)
+  const [playing, setPlaying] = useState(false)
+  const [current, setCurrent] = useState(0)
+  const [duration, setDuration] = useState(0)
+
+  const toggle = () => {
+    if (!audioRef.current) return
+    playing ? audioRef.current.pause() : audioRef.current.play()
+    setPlaying(!playing)
+  }
+
+  const fmt = (s: number) => `${Math.floor(s / 60)}:${Math.floor(s % 60).toString().padStart(2, '0')}`
+
+  return (
+    <div className="flex items-center gap-4 p-4 rounded-xl border border-white/8 bg-midnight-graphite/40">
+      <audio
+        ref={audioRef}
+        src={src}
+        onTimeUpdate={() => setCurrent(audioRef.current?.currentTime ?? 0)}
+        onLoadedMetadata={() => setDuration(audioRef.current?.duration ?? 0)}
+        onEnded={() => setPlaying(false)}
+      />
+      <button
+        onClick={toggle}
+        className="w-10 h-10 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center text-gold hover:bg-gold/20 transition-colors flex-shrink-0"
+        aria-label={playing ? 'Pause' : 'Play'}
+      >
+        {playing
+          ? <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><rect x="6" y="4" width="4" height="16"/><rect x="14" y="4" width="4" height="16"/></svg>
+          : <svg width="14" height="14" viewBox="0 0 24 24" fill="currentColor"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+        }
+      </button>
+      <div className="flex-1 space-y-1.5">
+        <input
+          type="range"
+          min={0}
+          max={duration || 1}
+          value={current}
+          onChange={e => {
+            const t = Number(e.target.value)
+            if (audioRef.current) audioRef.current.currentTime = t
+            setCurrent(t)
+          }}
+          className="w-full h-1 rounded-full appearance-none cursor-pointer"
+          style={{ background: `linear-gradient(to right, #D4A85A ${(current / (duration || 1)) * 100}%, rgba(255,255,255,0.08) 0%)` }}
+        />
+        <div className="flex justify-between text-xs text-ivory-muted font-sans">
+          <span>{fmt(current)}</span>
+          <span>{fmt(duration)}</span>
+        </div>
       </div>
     </div>
   )

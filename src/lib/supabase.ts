@@ -61,6 +61,12 @@ export const getSessionById = (sessionId: string) =>
 export const createSession = (session: Omit<Session, 'id' | 'created_at'>) =>
   supabase.from('sessions').insert(session).select().single<Session>()
 
+export const deleteSession = (sessionId: string) =>
+  supabase.from('sessions').delete().eq('id', sessionId)
+
+export const deleteAllSessions = (userId: string) =>
+  supabase.from('sessions').delete().eq('user_id', userId)
+
 // ── Analysis ─────────────────────────────────────────────────────
 export const createAnalysis = (analysis: Omit<Analysis, 'id' | 'created_at'>) =>
   supabase.from('analysis').insert(analysis).select().single<Analysis>()
@@ -83,8 +89,26 @@ export const savePrompt = (userId: string, promptId: string) =>
 export const getSavedPrompts = (userId: string) =>
   supabase
     .from('saved_prompts')
-    .select('*, prompts(*)')
+    .select('prompt_id')
     .eq('user_id', userId)
+
+// ── Daily training ────────────────────────────────────────────────
+export const getDailyTrainingPrompts = (language = 'en') =>
+  supabase
+    .from('prompts')
+    .select('*')
+    .eq('language', language)
+    .eq('is_daily', true)
+    .order('created_at', { ascending: true })
+
+export const getTrainingExercises = (language = 'en') =>
+  supabase
+    .from('prompts')
+    .select('*')
+    .eq('language', language)
+    .eq('prompt_type', 'exercise')
+    .order('is_featured', { ascending: false })
+    .order('category', { ascending: true })
 
 // ── Debate topics ─────────────────────────────────────────────────
 export const getDebateTopics = (language = 'en', limit = 50) =>

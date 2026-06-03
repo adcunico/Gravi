@@ -6,6 +6,12 @@ export default {
   theme: {
     extend: {
       colors: {
+        // Gold Usage Hierarchy:
+        // Tier 1 — bg-gold/5 to bg-gold/8     → background tints, hover fills
+        // Tier 2 — border-gold/20             → card borders (gold variant)
+        // Tier 3 — text-gold/60               → secondary labels, icons, inactive
+        // Tier 4 — text-gold / border-gold/40 → active nav, CTAs, key values
+        // Tier 5 — text-gold-light / shadow-gold → score reveals, glow, highlights
         midnight: {
           DEFAULT: '#0B0B0D',
           charcoal: '#141417',

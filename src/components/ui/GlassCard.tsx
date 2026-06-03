@@ -23,7 +23,7 @@ export default function GlassCard({
   const base = [
     'glass rounded-card',
     paddings[padding],
-    gold ? 'border-gold/30' : '',
+    gold ? 'border-gold/30 bg-gold/3 shadow-gold' : '',
     className,
   ].join(' ')
 

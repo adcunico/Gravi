@@ -34,34 +34,60 @@ export default function Sidebar() {
   return (
     <aside className="hidden lg:flex flex-col w-64 xl:w-72 h-screen bg-midnight-charcoal border-r border-white/5 fixed left-0 top-0 z-40">
       {/* Logo */}
-      <div className="flex items-center gap-3 px-6 py-6 border-b border-white/5">
+      <NavLink to="/dashboard" className="flex items-center gap-3 px-6 py-6 border-b border-white/5 hover:opacity-80 transition-opacity">
         <GraviLogo size={36} animated={false} />
         <span className="font-display text-xl tracking-widest text-ivory uppercase">GRAVI</span>
-      </div>
+      </NavLink>
 
       {/* Nav */}
-      <nav className="flex-1 px-3 py-4 space-y-1 overflow-y-auto" aria-label="Main navigation">
-        {nav.map(({ to, label, icon: Icon }) => (
-          <NavLink
-            key={to}
-            to={to}
-            className={({ isActive }) =>
-              [
-                'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-sans transition-all duration-200',
-                isActive
-                  ? 'bg-gold/10 text-gold border border-gold/20'
-                  : 'text-ivory-secondary hover:text-ivory hover:bg-white/5',
-              ].join(' ')
-            }
-          >
-            {({ isActive }) => (
-              <>
-                <Icon size={18} className={isActive ? 'text-gold' : 'text-current'} />
-                {label}
-              </>
-            )}
-          </NavLink>
-        ))}
+      <nav className="flex-1 px-3 py-4 overflow-y-auto" aria-label="Main navigation">
+        <div className="space-y-1">
+          {nav.slice(0, 4).map(({ to, label, icon: Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                [
+                  'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-sans transition-all duration-200',
+                  isActive
+                    ? 'bg-gold/10 text-gold border border-gold/20'
+                    : 'text-ivory-secondary hover:text-ivory hover:bg-white/5',
+                ].join(' ')
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <Icon size={18} className={isActive ? 'text-gold' : 'text-current'} />
+                  {label}
+                </>
+              )}
+            </NavLink>
+          ))}
+        </div>
+        <div className="h-px bg-white/6 mx-1 my-2" />
+        <div className="space-y-1">
+          {nav.slice(4, 6).map(({ to, label, icon: Icon }) => (
+            <NavLink
+              key={to}
+              to={to}
+              className={({ isActive }) =>
+                [
+                  'flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-sans transition-all duration-200',
+                  isActive
+                    ? 'bg-gold/10 text-gold border border-gold/20'
+                    : 'text-ivory-secondary hover:text-ivory hover:bg-white/5',
+                ].join(' ')
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <Icon size={18} className={isActive ? 'text-gold' : 'text-current'} />
+                  {label}
+                </>
+              )}
+            </NavLink>
+          ))}
+        </div>
       </nav>
 
       {/* User footer */}

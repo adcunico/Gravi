@@ -90,6 +90,8 @@ export interface Prompt {
   difficulty: Difficulty
   language: Language
   is_featured: boolean
+  prompt_type: 'speech' | 'exercise'
+  is_daily: boolean
   created_at: string
 }
 

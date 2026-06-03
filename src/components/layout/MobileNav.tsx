@@ -11,7 +11,8 @@ const tabs = [
 export default function MobileNav() {
   return (
     <nav
-      className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-midnight-charcoal/95 backdrop-blur border-t border-white/5 mobile-safe-bottom"
+      className="lg:hidden fixed bottom-0 inset-x-0 z-50 bg-midnight-charcoal/95 backdrop-blur border-t border-white/5"
+      style={{ paddingBottom: 'env(safe-area-inset-bottom, 8px)' }}
       aria-label="Mobile navigation"
     >
       <div className="flex items-center justify-around px-2 pt-2 pb-1">
@@ -21,7 +22,7 @@ export default function MobileNav() {
             to={to}
             className={({ isActive }) =>
               [
-                'flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all duration-200',
+                'relative flex flex-col items-center gap-1 px-3 py-2 rounded-xl transition-all duration-200',
                 isActive ? 'text-gold' : 'text-ivory-muted',
               ].join(' ')
             }
@@ -30,6 +31,9 @@ export default function MobileNav() {
               <>
                 <Icon size={22} className={isActive ? 'text-gold' : 'text-ivory-muted'} />
                 <span className="text-[10px] font-sans font-medium">{label}</span>
+                {isActive && (
+                  <span className="absolute bottom-0.5 left-1/2 -translate-x-1/2 w-1 h-1 rounded-full bg-gold" />
+                )}
               </>
             )}
           </NavLink>

@@ -4,15 +4,32 @@ import GraviLogo from '@/components/ui/GraviLogo'
 import Button from '@/components/ui/Button'
 import GlassCard from '@/components/ui/GlassCard'
 
+function LandingMicIcon() {
+  return <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gold/70"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>
+}
+function LandingSwordsIcon() {
+  return <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gold/70"><polyline points="14.5 17.5 3 6 3 3 6 3 17.5 14.5"/><line x1="13" y1="19" x2="19" y2="13"/><line x1="19" y1="21" x2="21" y2="19"/><polyline points="14.5 6.5 18 3 21 3 21 6 17.5 9.5"/></svg>
+}
+function LandingDNAIcon() {
+  return <svg width={28} height={28} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className="text-gold/70"><path d="M2 15C8 15 16 9 22 9"/><path d="M2 9c6 0 14 6 20 6"/></svg>
+}
+function GreyCheck() {
+  return (
+    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="rgba(158,154,146,0.5)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" className="flex-shrink-0 mt-0.5">
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  )
+}
+
 const FEATURES = [
-  { icon: '🎤', title: 'Guided Delivery', desc: 'Practice with AI teleprompter and get precision feedback on every delivery.' },
-  { icon: '⚔️', title: 'Debate Arena', desc: 'Sharpen your arguments and build unshakeable conviction under pressure.' },
-  { icon: '🧬', title: 'Speech DNA', desc: 'Deep analytics tracking your communication evolution over every session.' },
+  { icon: <LandingMicIcon />, title: 'Guided Delivery', desc: 'Practice with AI teleprompter and get precision feedback on every delivery.' },
+  { icon: <LandingSwordsIcon />, title: 'Debate Arena', desc: 'Sharpen your arguments and build unshakeable conviction under pressure.' },
+  { icon: <LandingDNAIcon />, title: 'Speech DNA', desc: 'Deep analytics tracking your communication evolution over every session.' },
 ]
 
 const STEPS = [
   { n: '01', title: 'Record', desc: 'Practise your speech, debate, or prompt using your browser — no extra hardware needed.' },
-  { n: '02', title: 'Analyse', desc: 'Gravi\'s AI analyses clarity, confidence, pacing, persuasion, and more in seconds.' },
+  { n: '02', title: 'Analyse', desc: "Gravi's AI analyses clarity, confidence, pacing, persuasion, and more in seconds." },
   { n: '03', title: 'Improve', desc: 'Get actionable feedback, vocabulary upgrades, and filler word counts to sharpen every word.' },
 ]
 
@@ -51,16 +68,19 @@ export default function Landing() {
           <GraviLogo size={96} showWordmark showTagline animated />
 
           <div className="space-y-6 mx-auto max-w-3xl">
-            <h1 className="font-display text-5xl sm:text-6xl md:text-7xl leading-tight tracking-tight text-ivory">
-              Speak with elite presence. Train with AI that understands the way you speak.
+            <h1 className="font-display text-5xl sm:text-6xl md:text-7xl leading-tight tracking-normal text-ivory">
+              Speak with{' '}
+              <em className="italic text-gold">authority.</em>
             </h1>
-            <p className="text-base sm:text-lg text-ivory-muted max-w-2xl mx-auto leading-relaxed">
-              The private communication studio for founders, executives, lawyers, and consultants who demand more from every word.
+            <p className="text-base sm:text-lg text-ivory-secondary max-w-2xl mx-auto leading-relaxed">
+              The private studio for founders, executives, and lawyers who take communication seriously.
             </p>
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-sm sm:text-base font-sans text-ivory-secondary">
-              <div className="glass rounded-2xl px-4 py-3">Personalized delivery coaching</div>
-              <div className="glass rounded-2xl px-4 py-3">Session-level Speech DNA</div>
-              <div className="glass rounded-2xl px-4 py-3">Private, secure practice studio</div>
+            <div className="flex flex-col sm:flex-row items-center justify-center gap-2 sm:gap-0 text-sm font-sans text-ivory-secondary">
+              <span><span className="text-gold/60 mr-1.5">✦</span>Personalized delivery coaching</span>
+              <span className="hidden sm:block text-ivory-muted/30 mx-4">·</span>
+              <span><span className="text-gold/60 mr-1.5">✦</span>Session-level Speech DNA</span>
+              <span className="hidden sm:block text-ivory-muted/30 mx-4">·</span>
+              <span><span className="text-gold/60 mr-1.5">✦</span>Private, secure practice studio</span>
             </div>
           </div>
 
@@ -103,7 +123,9 @@ export default function Landing() {
               transition={{ delay: i * 0.1 }}
             >
               <GlassCard hover gold={i === 1} padding="lg" className="h-full">
-                <div className="text-4xl">{f.icon}</div>
+                <div className="w-14 h-14 rounded-2xl bg-gold/8 border border-gold/15 flex items-center justify-center mb-4">
+                  {f.icon}
+                </div>
                 <h3 className="font-display text-2xl text-ivory mt-3">{f.title}</h3>
                 <p className="text-base text-ivory-secondary leading-relaxed mt-3">{f.desc}</p>
               </GlassCard>
@@ -130,9 +152,9 @@ export default function Landing() {
               whileInView={{ opacity: 1, x: 0 }}
               viewport={{ once: true, amount: 0.15 }}
               transition={{ delay: i * 0.15 }}
-              className="flex flex-col sm:flex-row gap-6 items-start"
+              className={`flex flex-col sm:flex-row gap-6 items-start${i > 0 ? ' sm:border-l sm:border-white/6 sm:pl-6' : ''}`}
             >
-              <span className="font-display text-5xl text-gold/20 font-bold w-20 flex-shrink-0">{s.n}</span>
+              <span className="font-display text-6xl text-gold/50 font-bold w-20 flex-shrink-0">{s.n}</span>
               <div>
                 <h3 className="font-display text-2xl text-ivory mb-2">{s.title}</h3>
                 <p className="text-base text-ivory-secondary leading-relaxed">{s.desc}</p>
@@ -171,10 +193,10 @@ export default function Landing() {
               <div className="font-display text-4xl text-ivory mt-1">£0</div>
             </div>
             <ul className="space-y-2 text-sm text-ivory-secondary">
-              <li>✓ 3 sessions</li>
-              <li>✓ Basic Speech DNA</li>
-              <li>✓ 3 prompts</li>
-              <li>✓ 2 debate topics</li>
+              <li className="flex items-center gap-2"><GreyCheck /> 3 sessions</li>
+              <li className="flex items-center gap-2"><GreyCheck /> Basic Speech DNA</li>
+              <li className="flex items-center gap-2"><GreyCheck /> 3 prompts</li>
+              <li className="flex items-center gap-2"><GreyCheck /> 2 debate topics</li>
             </ul>
             <Button variant="ghost" fullWidth onClick={() => navigate('/signup')}>Get started free</Button>
           </GlassCard>
@@ -203,15 +225,15 @@ export default function Landing() {
       <footer className="border-t border-white/8 py-12 px-4">
         <div className="max-w-4xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-4">
           <div className="flex items-center gap-2">
-            <GraviLogo size={28} animated={false} />
-            <span className="font-display text-sm tracking-widest text-ivory-secondary uppercase">GRAVI</span>
+            <GraviLogo size={32} animated={false} />
+            <span className="font-display text-sm tracking-widest text-ivory/70 uppercase">GRAVI</span>
           </div>
           <div className="flex gap-6 text-xs text-ivory-muted">
             <a href="#" className="hover:text-ivory transition-colors">Privacy Policy</a>
             <a href="#" className="hover:text-ivory transition-colors">Terms of Service</a>
             <a href="mailto:hello@gravi.app" className="hover:text-ivory transition-colors">Contact</a>
           </div>
-          <p className="text-xs text-ivory-muted">© 2025 Gravi. All rights reserved.</p>
+          <p className="text-xs text-ivory-muted">© 2026 Gravi. All rights reserved.</p>
         </div>
       </footer>
     </div>

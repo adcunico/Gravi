@@ -2,14 +2,14 @@ import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useAuthStore } from '@/stores/useAuthStore'
-import { getSessions } from '@/lib/supabase'
+import { getDailyTrainingPrompts } from '@/lib/supabase'
 import GlassCard from '@/components/ui/GlassCard'
 import ScoreGauge from '@/components/ui/ScoreGauge'
 import ScoreBar from '@/components/ui/ScoreBar'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import { SkeletonStats, SkeletonList } from '@/components/ui/Skeleton'
-import type { Session, Analysis } from '@/types'
+import type { Session, Analysis, Prompt } from '@/types'
 
 type SessionRow = Session & { analysis: Analysis }
 
@@ -37,6 +37,13 @@ function calculateStreak(sessions: SessionRow[]): number {
     else break
   }
   return streak
+}
+
+function getTodayChallenge(prompts: Prompt[]): Prompt | null {
+  if (!prompts.length) return null
+  const start = new Date(new Date().getFullYear(), 0, 0)
+  const dayOfYear = Math.floor((Date.now() - start.getTime()) / 86400000)
+  return prompts[dayOfYear % prompts.length]
 }
 
 const FEATURE_CARDS = [
@@ -84,20 +91,22 @@ const DNA_METRICS = [
 ]
 
 export default function Dashboard() {
-  const { user, profile } = useAuthStore()
+  const { user, profile, sessions: storeSessions, fetchSessions } = useAuthStore()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
-  const [sessions, setSessions] = useState<SessionRow[]>([])
-  const [loading, setLoading] = useState(true)
   const [showUpgradeBanner, setShowUpgradeBanner] = useState(searchParams.get('upgraded') === '1')
+  const [todayChallenge, setTodayChallenge] = useState<Prompt | null>(null)
 
   useEffect(() => {
     if (!user) return
-    getSessions(user.id, 10).then(({ data }) => {
-      setSessions((data as SessionRow[]) || [])
-      setLoading(false)
-    })
+    fetchSessions(user.id)
   }, [user])
+
+  useEffect(() => {
+    getDailyTrainingPrompts(profile?.language || 'en').then(({ data }) => {
+      if (data) setTodayChallenge(getTodayChallenge(data as Prompt[]))
+    })
+  }, [profile?.language])
 
   // Clear ?upgraded=1 from URL without a page reload
   useEffect(() => {
@@ -106,6 +115,9 @@ export default function Dashboard() {
       setSearchParams(searchParams, { replace: true })
     }
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
+
+  const loading = storeSessions === null
+  const sessions = (storeSessions || []) as SessionRow[]
 
   const lastName = profile?.full_name?.split(' ').pop() || 'there'
   const latestAnalysis = sessions[0]?.analysis
@@ -124,6 +136,14 @@ export default function Dashboard() {
 
   const totalMins = Math.round(sessions.reduce((a, s) => a + (s.duration_seconds || 0), 0) / 60)
   const streak = calculateStreak(sessions)
+
+  const startChallenge = () => {
+    if (!todayChallenge) return
+    sessionStorage.setItem('gravi_session_script', todayChallenge.description)
+    sessionStorage.setItem('gravi_session_title', todayChallenge.title)
+    sessionStorage.setItem('gravi_session_path', 'library')
+    navigate('/studio/session')
+  }
 
   return (
     <div className="p-4 sm:p-6 lg:p-8 max-w-screen-xl mx-auto space-y-8">
@@ -180,10 +200,10 @@ export default function Dashboard() {
       ) : (
         <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
           {[
-            { label: 'Confidence Score', value: `${overallScore}`, sub: sessions.length > 1 ? '↑ improving' : 'Start practising', icon: '⚡' },
-            { label: 'Current Streak', value: `${streak}d`, sub: 'Keep it up!', icon: '🔥' },
-            { label: 'Minutes Practiced', value: `${totalMins}m`, sub: 'This month', icon: '⏱️' },
-            { label: 'Total Sessions', value: `${sessions.length}`, sub: sessions.length === 0 ? 'Time to begin' : 'All time', icon: '🎯' },
+            { label: 'Confidence Score', value: `${overallScore}`, sub: sessions.length > 1 ? '↑ improving' : 'Start practising', icon: <LightningIcon size={16} className="text-gold/60" /> },
+            { label: 'Current Streak', value: `${streak}d`, sub: 'Keep it up!', icon: <FlameIcon size={16} className="text-gold/60" /> },
+            { label: 'Minutes Practiced', value: `${totalMins}m`, sub: 'This month', icon: <ClockIcon size={16} className="text-gold/60" /> },
+            { label: 'Total Sessions', value: `${sessions.length}`, sub: sessions.length === 0 ? 'Time to begin' : 'All time', icon: <TargetIcon size={16} className="text-gold/60" /> },
           ].map((stat, i) => (
             <motion.div
               key={stat.label}
@@ -194,7 +214,7 @@ export default function Dashboard() {
               <GlassCard padding="sm" className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-xs font-sans text-ivory-secondary">{stat.label}</span>
-                  <span className="text-base">{stat.icon}</span>
+                  {stat.icon}
                 </div>
                 <div className="font-display text-3xl text-gold">{stat.value}</div>
                 <div className="text-xs text-ivory-muted">{stat.sub}</div>
@@ -252,9 +272,27 @@ export default function Dashboard() {
               <div className="skeleton w-28 h-28 rounded-full" />
             </div>
           ) : sessions.length === 0 ? (
-            <div className="py-8 text-center">
-              <p className="text-sm text-ivory-muted">No sessions yet</p>
-              <p className="text-xs text-ivory-muted mt-1">Complete a session to see your DNA</p>
+            <div className="py-4 space-y-4">
+              <div className="flex justify-center">
+                <div className="w-[120px] h-[120px] rounded-full border-4 border-dashed border-white/10 flex items-center justify-center opacity-40">
+                  <span className="font-display text-3xl text-ivory-muted">—</span>
+                </div>
+              </div>
+              <div className="space-y-3 opacity-30">
+                {['Clarity', 'Confidence', 'Persuasion', 'Vocal Variety', 'Pacing', 'Conciseness'].map(label => (
+                  <div key={label} className="space-y-1.5">
+                    <div className="flex justify-between">
+                      <span className="text-xs text-ivory-secondary">{label}</span>
+                      <span className="text-xs text-ivory-muted">—</span>
+                    </div>
+                    <div className="h-1.5 bg-white/8 rounded-full" />
+                  </div>
+                ))}
+              </div>
+              <div className="text-center pt-2 space-y-1">
+                <p className="text-sm text-ivory-secondary">Your Speech DNA appears after your first session.</p>
+                <p className="text-xs text-ivory-muted">6 scores. Tracked over time. Every session sharpens the picture.</p>
+              </div>
             </div>
           ) : (
             <>
@@ -294,6 +332,40 @@ export default function Dashboard() {
         ))}
       </div>
 
+      {/* Today's Daily Training challenge */}
+      {todayChallenge && (
+        <motion.div
+          initial={{ opacity: 0, y: 8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.15 }}
+        >
+          <GlassCard padding="md" className="flex items-center gap-4">
+            <div className="w-10 h-10 rounded-xl bg-gold/10 border border-gold/20 flex items-center justify-center flex-shrink-0">
+              <FlameIcon size={18} className="text-gold" />
+            </div>
+            <div className="flex-1 min-w-0">
+              <div className="flex items-center gap-2 mb-0.5">
+                <span className="text-xs font-sans font-semibold text-gold uppercase tracking-wide">Daily Training</span>
+                <Badge variant="gold" size="sm">Today</Badge>
+              </div>
+              <p className="text-sm font-sans font-medium text-ivory truncate">{todayChallenge.title}</p>
+              <p className="text-xs text-ivory-muted">{todayChallenge.duration_minutes} min · {todayChallenge.category} · refreshes tomorrow</p>
+            </div>
+            <div className="flex items-center gap-2 flex-shrink-0">
+              <Button size="sm" onClick={startChallenge}>
+                Start →
+              </Button>
+              <button
+                onClick={() => navigate('/prompts')}
+                className="text-xs text-ivory-muted hover:text-gold transition-colors"
+              >
+                All exercises
+              </button>
+            </div>
+          </GlassCard>
+        </motion.div>
+      )}
+
       {/* Recent sessions */}
       <div>
         <div className="flex items-center justify-between mb-4">
@@ -309,7 +381,8 @@ export default function Dashboard() {
               <div className="w-12 h-12 rounded-full bg-gold/8 flex items-center justify-center mx-auto">
                 <MicIcon size={20} className="text-gold/60" />
               </div>
-              <p className="text-sm text-ivory-secondary">No sessions yet</p>
+              <p className="text-sm text-ivory-secondary">Your first session starts here.</p>
+              <p className="text-xs text-ivory-muted">Record, get analysed, and see exactly where you stand in minutes.</p>
               <Button size="sm" onClick={() => navigate('/studio')}>Start your first session</Button>
             </div>
           </GlassCard>
@@ -376,4 +449,16 @@ function DNAIcon({ size = 20, className = '' }) {
 }
 function PlayIcon({ size = 14, className = '' }) {
   return <svg width={size} height={size} viewBox="0 0 24 24" fill="currentColor" className={className}><polygon points="5 3 19 12 5 21 5 3"/></svg>
+}
+function FlameIcon({ size = 20, className = '' }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><path d="M8.5 14.5A2.5 2.5 0 0 0 11 12c0-1.38-.5-2-1-3-1.072-2.143-.224-4.054 2-6 .5 2.5 2 4.9 4 6.5 2 1.6 3 3.5 3 5.5a7 7 0 1 1-14 0c0-1.153.433-2.294 1-3a2.5 2.5 0 0 0 2.5 2.5z"/></svg>
+}
+function LightningIcon({ size = 16, className = '' }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><polyline points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+}
+function ClockIcon({ size = 16, className = '' }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+}
+function TargetIcon({ size = 16, className = '' }) {
+  return <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5" className={className}><circle cx="12" cy="12" r="10"/><circle cx="12" cy="12" r="6"/><circle cx="12" cy="12" r="2"/></svg>
 }

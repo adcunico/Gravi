@@ -26,9 +26,9 @@ export default function ScoreBar({ label, score, note, animate = true, delay = 0
     <div className="space-y-1.5">
       <div className="flex items-center justify-between">
         <span className="text-sm font-sans text-ivory-secondary">{label}</span>
-        <span className={`text-sm font-semibold font-sans ${color}`}>{score}</span>
+        <span className={`font-display text-base ${color}`}>{score}</span>
       </div>
-      <div className="h-1 bg-white/5 rounded-full overflow-hidden">
+      <div className="h-1.5 bg-white/8 rounded-full overflow-hidden">
         <div
           className="h-full rounded-full"
           style={{

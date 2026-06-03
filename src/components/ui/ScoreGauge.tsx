@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react'
+import { motion } from 'framer-motion'
 import { SCORE_LABEL } from '@/types'
 
 interface Props {
@@ -20,6 +21,7 @@ export default function ScoreGauge({
 }: Props) {
   const [displayed, setDisplayed] = useState(animate ? 0 : score)
   const [dashOffset, setDashOffset] = useState(0)
+  const [showPulse, setShowPulse] = useState(false)
   const hasAnimated = useRef(false)
 
   const r = (size - strokeWidth) / 2
@@ -41,6 +43,10 @@ export default function ScoreGauge({
       if (t < 1) requestAnimationFrame(tick)
     }
     requestAnimationFrame(tick)
+    setTimeout(() => {
+      setShowPulse(true)
+      setTimeout(() => setShowPulse(false), 500)
+    }, 1200)
   }, [score, animate])
 
   useEffect(() => {
@@ -62,6 +68,18 @@ export default function ScoreGauge({
   return (
     <div className={`relative inline-flex flex-col items-center ${className}`}>
       <svg width={size} height={size} style={{ transform: 'rotate(0deg)' }}>
+        {/* Glow pulse */}
+        {showPulse && (
+          <circle
+            cx={center} cy={center} r={r + 3}
+            fill="none"
+            stroke="url(#goldGradient)"
+            strokeWidth={3}
+            strokeDasharray={`${arcLength} ${circumference}`}
+            transform={`rotate(${startAngle}, ${center}, ${center})`}
+            style={{ transformOrigin: `${center}px ${center}px`, opacity: 0.35, transition: 'opacity 500ms ease-out' }}
+          />
+        )}
         {/* Track */}
         <circle
           cx={center} cy={center} r={r}
@@ -97,31 +115,26 @@ export default function ScoreGauge({
         </defs>
         {/* Score number */}
         <text
-          x={center} y={center - 4}
+          x={center} y={center}
           textAnchor="middle"
           dominantBaseline="middle"
           fill={scoreColor}
-          fontSize={size * 0.22}
+          fontSize={size * 0.26}
           fontFamily="'Cormorant Garamond', serif"
           fontWeight="600"
         >
           {displayed}
         </text>
-        {/* /100 */}
-        <text
-          x={center} y={center + size * 0.14}
-          textAnchor="middle"
-          fill="rgba(158,154,146,0.8)"
-          fontSize={size * 0.09}
-          fontFamily="'DM Sans', sans-serif"
-        >
-          / 100
-        </text>
       </svg>
       {showLabel && (
-        <span className="text-xs font-sans text-ivory-secondary mt-1 tracking-wide uppercase">
+        <motion.span
+          initial={{ opacity: 0, y: 4 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 1.5, duration: 0.4 }}
+          className="font-display text-2xl text-ivory mt-2"
+        >
           {label}
-        </span>
+        </motion.span>
       )}
     </div>
   )

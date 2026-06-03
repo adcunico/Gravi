@@ -10,7 +10,48 @@ import type { Analysis, DebateTopic, DebatePosition } from '@/types'
 
 type State = 'idle' | 'countdown' | 'recording' | 'paused' | 'processing'
 
+interface SpeechRecognitionResult {
+  isFinal: boolean
+  [i: number]: { transcript: string }
+}
+interface SpeechRecognitionEvent extends Event {
+  resultIndex: number
+  results: SpeechRecognitionResult[] & { length: number }
+}
+interface SpeechRecognitionErrorEvent extends Event { error: string }
+interface SpeechRecognition extends EventTarget {
+  continuous: boolean; interimResults: boolean; lang: string
+  onresult: ((e: SpeechRecognitionEvent) => void) | null
+  onerror: ((e: SpeechRecognitionErrorEvent) => void) | null
+  onend: (() => void) | null
+  start(): void; stop(): void
+}
+declare const SpeechRecognition: { new(): SpeechRecognition }
+
 const SPEED_WPM = { slow: 80, medium: 130, fast: 180 }
+
+const LANG_MAP: Record<string, string> = {
+  en: 'en-US', pt: 'pt-BR', es: 'es-ES', fr: 'fr-FR', de: 'de-DE', zh: 'zh-CN',
+}
+
+const STOP_WORDS = new Set([
+  'the','a','an','is','are','was','were','of','in','to','and','or','for','with',
+  'that','this','it','will','be','has','have','had','by','at','as','on','we',
+  'you','our','your','their','they','but','not','from','so','if','its','one',
+])
+
+function sigWords(line: string): string[] {
+  return line.toLowerCase().split(/\s+/)
+    .map(w => w.replace(/[^a-z]/g, ''))
+    .filter(w => w.length > 3 && !STOP_WORDS.has(w))
+}
+
+function lineMatchScore(line: string, recentWords: string[]): number {
+  const sig = sigWords(line)
+  if (sig.length === 0) return 0
+  const wordSet = new Set(recentWords)
+  return sig.filter(w => wordSet.has(w)).length / sig.length
+}
 
 function splitLines(text: string, charsPerLine = 55): string[] {
   const words = text.split(' ')
@@ -69,6 +110,7 @@ Speak confidently for ${debateFormat} minutes.`
   const [showPaywall, setShowPaywall] = useState(false)
   const [webGLSupported, setWebGLSupported] = useState(true)
   const [processStatus, setProcessStatus] = useState<string[]>([])
+  const [speechTracking, setSpeechTracking] = useState(false)
 
   useEffect(() => {
     if (!isDebate) {
@@ -85,6 +127,8 @@ Speak confidently for ${debateFormat} minutes.`
   const scrollTimerRef = useRef<ReturnType<typeof setInterval> | null>(null)
   const startTimeRef = useRef<number>(0)
   const wordsSpokenRef = useRef<number>(0)
+  const recognitionRef = useRef<InstanceType<typeof SpeechRecognition> | null>(null)
+  const recentWordsRef = useRef<string[]>([])
 
   // Check WebGL support
   useEffect(() => {
@@ -100,7 +144,61 @@ Speak confidently for ${debateFormat} minutes.`
   const stopTimers = useCallback(() => {
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null }
     if (scrollTimerRef.current) { clearInterval(scrollTimerRef.current); scrollTimerRef.current = null }
+    try { recognitionRef.current?.stop() } catch {}
+    recognitionRef.current = null
+    setSpeechTracking(false)
   }, [])
+
+  const startSpeechTracking = useCallback((): boolean => {
+    const win = window as Window & { SpeechRecognition?: typeof SpeechRecognition; webkitSpeechRecognition?: typeof SpeechRecognition }
+    const SR = win.SpeechRecognition ?? win.webkitSpeechRecognition
+    if (!SR) return false
+
+    const recognition = new SR()
+    recognition.continuous = true
+    recognition.interimResults = false
+    recognition.lang = LANG_MAP[profile?.language ?? 'en'] ?? 'en-US'
+    recentWordsRef.current = []
+
+    recognition.onresult = (event: SpeechRecognitionEvent) => {
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        const words = event.results[i][0].transcript
+          .toLowerCase().split(/\s+/).map(w => w.replace(/[^a-z]/g, '')).filter(Boolean)
+        recentWordsRef.current.push(...words)
+        if (recentWordsRef.current.length > 60) {
+          recentWordsRef.current = recentWordsRef.current.slice(-60)
+        }
+      }
+      setCurrentLine(prev => {
+        const next = prev + 1
+        if (next >= lines.length) return prev
+        if (lineMatchScore(lines[next], recentWordsRef.current) >= 0.5) {
+          recentWordsRef.current = recentWordsRef.current.slice(-15)
+          return next
+        }
+        return prev
+      })
+    }
+
+    recognition.onerror = (event: SpeechRecognitionErrorEvent) => {
+      if (event.error !== 'no-speech') setSpeechTracking(false)
+    }
+
+    recognition.onend = () => {
+      if (mediaRecorderRef.current?.state === 'recording') {
+        try { recognition.start() } catch {}
+      }
+    }
+
+    try {
+      recognition.start()
+      recognitionRef.current = recognition
+      setSpeechTracking(true)
+      return true
+    } catch {
+      return false
+    }
+  }, [lines, profile?.language])
 
   const beginRecording = useCallback(async () => {
     try {
@@ -130,40 +228,52 @@ Speak confidently for ${debateFormat} minutes.`
         setWpm(Math.round((wordsSpokenRef.current / elapsed) * 60))
       }, 1000)
 
-      // Auto-scroll teleprompter
-      const msPerLine = (60 / SPEED_WPM[speed]) * 1000 * 8 // ~8 words per line
-      scrollTimerRef.current = setInterval(() => {
-        setCurrentLine((prev) => Math.min(prev + 1, lines.length - 1))
-      }, msPerLine)
+      // Voice tracking drives the teleprompter; timer is the fallback
+      const trackingStarted = startSpeechTracking()
+      if (!trackingStarted) {
+        const msPerLine = (60 / SPEED_WPM[speed]) * 1000 * 8
+        scrollTimerRef.current = setInterval(() => {
+          setCurrentLine((prev) => Math.min(prev + 1, lines.length - 1))
+        }, msPerLine)
+      }
     } catch {
       setShowMicModal(true)
     }
-  }, [script, speed, lines.length])
+  }, [script, speed, lines.length, startSpeechTracking])
 
   const startCountdown = useCallback(async () => {
-    // Block free users after 3 sessions
-    if (profile?.subscription_status !== 'pro') {
-      const { count } = await supabase
-        .from('sessions')
-        .select('*', { count: 'exact', head: true })
-        .eq('user_id', user!.id)
-      if ((count ?? 0) >= 3) {
-        setShowPaywall(true)
+    try {
+      if (!user) {
+        navigate('/studio')
         return
       }
-    }
-    setState('countdown')
-    setCountdown(3)
-    let c = 3
-    const timer = setInterval(() => {
-      c--
-      setCountdown(c)
-      if (c <= 0) {
-        clearInterval(timer)
-        beginRecording()
+      // Block free users after 3 sessions
+      if (profile?.subscription_status !== 'pro') {
+        const { count } = await supabase
+          .from('sessions')
+          .select('*', { count: 'exact', head: true })
+          .eq('user_id', user.id)
+        if ((count ?? 0) >= 3) {
+          setShowPaywall(true)
+          return
+        }
       }
-    }, 1000)
-  }, [beginRecording, profile, user])
+      setState('countdown')
+      setCountdown(3)
+      let c = 3
+      const timer = setInterval(() => {
+        c--
+        setCountdown(c)
+        if (c <= 0) {
+          clearInterval(timer)
+          beginRecording()
+        }
+      }, 1000)
+    } catch (err) {
+      console.error('Failed to start countdown:', err)
+      beginRecording()
+    }
+  }, [beginRecording, profile, user, navigate])
 
   const pause = useCallback(() => {
     setState('paused')
@@ -178,7 +288,14 @@ Speak confidently for ${debateFormat} minutes.`
     timerRef.current = setInterval(() => {
       setElapsed(Math.floor((Date.now() - startTimeRef.current) / 1000))
     }, 1000)
-  }, [elapsed])
+    const trackingStarted = startSpeechTracking()
+    if (!trackingStarted) {
+      const msPerLine = (60 / SPEED_WPM[speed]) * 1000 * 8
+      scrollTimerRef.current = setInterval(() => {
+        setCurrentLine((prev) => Math.min(prev + 1, lines.length - 1))
+      }, msPerLine)
+    }
+  }, [elapsed, startSpeechTracking, speed, lines.length])
 
   const stopAndProcess = useCallback(async () => {
     stopTimers()
@@ -243,6 +360,7 @@ Speak confidently for ${debateFormat} minutes.`
         occasion: null,
         topic: sessionTopic,
         debate_position: sessionDebatePosition,
+        audio_url: null,
       })
       if (sessionErr || !sessionData) throw sessionErr
 
@@ -491,10 +609,17 @@ Speak confidently for ${debateFormat} minutes.`
             >
               <div className="w-6 h-6 rounded bg-red-400" />
             </button>
-            <div className="flex gap-2">
-              {(['slow', 'medium', 'fast'] as const).map((s) => (
-                <button key={s} onClick={() => setSpeed(s)} className={['px-3 py-1.5 rounded-lg text-xs font-sans capitalize transition-all', speed === s ? 'text-gold' : 'text-ivory-muted'].join(' ')}>{s}</button>
-              ))}
+            <div className="flex gap-2 items-center">
+              {speechTracking ? (
+                <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-xs font-sans text-gold border border-gold/20 bg-gold/5">
+                  <span className="w-1.5 h-1.5 rounded-full bg-gold animate-pulse" />
+                  Voice tracking
+                </div>
+              ) : (
+                (['slow', 'medium', 'fast'] as const).map((s) => (
+                  <button key={s} onClick={() => setSpeed(s)} className={['px-3 py-1.5 rounded-lg text-xs font-sans capitalize transition-all', speed === s ? 'text-gold' : 'text-ivory-muted'].join(' ')}>{s}</button>
+                ))
+              )}
             </div>
           </>
         )}

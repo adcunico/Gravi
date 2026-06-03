@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import Button from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
 import GlassCard from '@/components/ui/GlassCard'
-import { callEdgeFunction } from '@/lib/supabase'
+import { supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/useAuthStore'
 
 const OCCASIONS = [
@@ -33,19 +33,41 @@ export default function StudioGenerate() {
   const handleGenerate = async () => {
     setLoading(true)
     setGenerated('')
+    setEditText('')
     try {
-      const result = await callEdgeFunction<{ script: string; word_count: number }>('generate-script', {
-        occasion: occasion.replace(/^[^\w]+/, '').trim(),
-        topic,
-        key_points: keyPoints,
-        tone,
-        length_minutes: length,
-        language: profile?.language || 'en',
-        role: profile?.role || 'other',
-      })
-      setGenerated(result.script)
-      setWordCount(result.word_count)
-      setEditText(result.script)
+      const { data: { session } } = await supabase.auth.getSession()
+      const response = await fetch(
+        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/generate-script`,
+        {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${session?.access_token ?? import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+            'apikey': import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+          },
+          body: JSON.stringify({
+            occasion: occasion.replace(/^[^\w]+/, '').trim(),
+            topic,
+            key_points: keyPoints,
+            tone,
+            length_minutes: length,
+            language: profile?.language || 'en',
+            role: profile?.role || 'other',
+          }),
+        }
+      )
+      if (!response.ok) throw new Error(`${response.status}`)
+      const reader = response.body!.getReader()
+      const decoder = new TextDecoder()
+      let fullScript = ''
+      while (true) {
+        const { done, value } = await reader.read()
+        if (done) break
+        fullScript += decoder.decode(value, { stream: true })
+        setGenerated(fullScript)
+      }
+      setWordCount(fullScript.split(/\s+/).filter(Boolean).length)
+      setEditText(fullScript)
     } catch {
       setGenerated('Failed to generate script. Please try again.')
     } finally {
@@ -143,8 +165,8 @@ export default function StudioGenerate() {
         {loading ? 'Crafting your script...' : 'Generate Script ✦'}
       </Button>
 
-      {/* Loading shimmer */}
-      {loading && (
+      {/* Loading shimmer — only before first chunk arrives */}
+      {loading && !generated && (
         <GlassCard>
           <div className="space-y-3 py-2">
             {[80, 100, 65, 90, 75, 100].map((w, i) => (
@@ -154,9 +176,9 @@ export default function StudioGenerate() {
         </GlassCard>
       )}
 
-      {/* Generated result */}
+      {/* Generated result — visible while streaming and after */}
       <AnimatePresence>
-        {generated && !loading && (
+        {generated && (
           <motion.div
             initial={{ opacity: 0, y: 16 }}
             animate={{ opacity: 1, y: 0 }}
@@ -166,17 +188,25 @@ export default function StudioGenerate() {
               <div className="flex items-center justify-between mb-4">
                 <div className="flex items-center gap-2">
                   <div className="w-2 h-2 rounded-full bg-gold" />
-                  <span className="text-sm font-sans text-ivory-secondary">{wordCount} words · ~{length} min</span>
+                  <span className="text-sm font-sans text-ivory-secondary">
+                    {loading ? (
+                      <span className="animate-pulse">Writing…</span>
+                    ) : (
+                      `${wordCount} words · ~${length} min`
+                    )}
+                  </span>
                 </div>
-                <button
-                  onClick={() => setEditing(!editing)}
-                  className="text-xs text-gold hover:text-gold-light transition-colors"
-                >
-                  {editing ? 'Preview' : 'Edit'}
-                </button>
+                {!loading && (
+                  <button
+                    onClick={() => setEditing(!editing)}
+                    className="text-xs text-gold hover:text-gold-light transition-colors"
+                  >
+                    {editing ? 'Preview' : 'Edit'}
+                  </button>
+                )}
               </div>
 
-              {editing ? (
+              {editing && !loading ? (
                 <textarea
                   value={editText}
                   onChange={(e) => setEditText(e.target.value)}
@@ -186,16 +216,19 @@ export default function StudioGenerate() {
               ) : (
                 <div className="font-display text-base text-ivory leading-relaxed whitespace-pre-wrap max-h-80 overflow-y-auto">
                   {generated}
+                  {loading && <span className="inline-block w-0.5 h-4 bg-gold animate-pulse ml-0.5 align-middle" />}
                 </div>
               )}
             </GlassCard>
 
-            <div className="flex gap-3">
-              <Button variant="ghost" onClick={handleGenerate} loading={loading}>Regenerate</Button>
-              <Button fullWidth onClick={() => handleUse(editing ? editText : generated)}>
-                Use This Script →
-              </Button>
-            </div>
+            {!loading && (
+              <div className="flex gap-3">
+                <Button variant="ghost" onClick={handleGenerate}>Regenerate</Button>
+                <Button fullWidth onClick={() => handleUse(editing ? editText : generated)}>
+                  Use This Script →
+                </Button>
+              </div>
+            )}
           </motion.div>
         )}
       </AnimatePresence>

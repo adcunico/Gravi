@@ -18,20 +18,31 @@ serve(async (req) => {
 
     const userPrompt = `Write a ${length_minutes}-minute ${occasion} speech about: "${topic}".${key_points ? `\n\nKey points to include:\n${key_points}` : ''}\n\nTarget word count: ${Math.round(length_minutes * 130)} words. Strong opening, clear body, powerful close.`
 
-    const message = await client.messages.create({
+    const stream = client.messages.stream({
       model: 'claude-sonnet-4-6',
       max_tokens: 2000,
       system: systemPrompt,
       messages: [{ role: 'user', content: userPrompt }],
     })
 
-    const script = (message.content[0] as { text: string }).text
-    const wordCount = script.split(/\s+/).filter(Boolean).length
+    const encoder = new TextEncoder()
+    const readable = new ReadableStream({
+      async start(controller) {
+        try {
+          for await (const chunk of stream) {
+            if (chunk.type === 'content_block_delta' && chunk.delta.type === 'text_delta') {
+              controller.enqueue(encoder.encode(chunk.delta.text))
+            }
+          }
+        } finally {
+          controller.close()
+        }
+      },
+    })
 
-    return new Response(
-      JSON.stringify({ script, word_count: wordCount, estimated_duration: length_minutes }),
-      { headers: { ...CORS, 'Content-Type': 'application/json' } },
-    )
+    return new Response(readable, {
+      headers: { ...CORS, 'Content-Type': 'text/plain; charset=utf-8' },
+    })
   } catch (err) {
     return new Response(JSON.stringify({ error: String(err) }), {
       status: 500,
