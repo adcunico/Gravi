@@ -1,11 +1,19 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import Button from '@/components/ui/Button'
 import { Input, Textarea } from '@/components/ui/Input'
 import GlassCard from '@/components/ui/GlassCard'
-import { supabase } from '@/lib/supabase'
+import { supabase, submitPromptSuggestion } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/useAuthStore'
+
+const LOADING_MSGS = [
+  'Analyzing your topic…',
+  'Structuring the narrative…',
+  'Crafting your opening…',
+  'Building key arguments…',
+  'Polishing the close…',
+]
 
 const OCCASIONS = [
   '🎯 Pitch', '🎤 Keynote', '📺 Media Interview', '📊 Board Update',
@@ -21,12 +29,21 @@ export default function StudioGenerate() {
   const [tone, setTone] = useState('Authoritative')
   const [length, setLength] = useState(5)
   const [loading, setLoading] = useState(false)
+  const [statusIdx, setStatusIdx] = useState(0)
   const [generated, setGenerated] = useState('')
   const [wordCount, setWordCount] = useState(0)
   const [editing, setEditing] = useState(false)
   const [editText, setEditText] = useState('')
+  const [suggSent, setSuggSent] = useState(false)
   const navigate = useNavigate()
-  const { profile } = useAuthStore()
+  const { user, profile } = useAuthStore()
+
+  useEffect(() => {
+    if (!loading || generated) return
+    setStatusIdx(0)
+    const id = setInterval(() => setStatusIdx(i => (i + 1) % LOADING_MSGS.length), 1800)
+    return () => clearInterval(id)
+  }, [loading, generated])
 
   const canGenerate = occasion && topic.trim()
 
@@ -168,10 +185,27 @@ export default function StudioGenerate() {
       {/* Loading shimmer — only before first chunk arrives */}
       {loading && !generated && (
         <GlassCard>
-          <div className="space-y-3 py-2">
-            {[80, 100, 65, 90, 75, 100].map((w, i) => (
-              <div key={i} className="skeleton h-3 rounded" style={{ width: `${w}%` }} />
-            ))}
+          <div className="space-y-4 py-2">
+            <div className="flex items-center gap-2">
+              <span className="text-gold animate-pulse text-xs">✦</span>
+              <AnimatePresence mode="wait">
+                <motion.span
+                  key={statusIdx}
+                  initial={{ opacity: 0, y: 4 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  exit={{ opacity: 0, y: -4 }}
+                  transition={{ duration: 0.25 }}
+                  className="text-sm text-ivory-secondary"
+                >
+                  {LOADING_MSGS[statusIdx]}
+                </motion.span>
+              </AnimatePresence>
+            </div>
+            <div className="space-y-3">
+              {[80, 100, 65, 90, 75, 100].map((w, i) => (
+                <div key={i} className="skeleton h-3 rounded" style={{ width: `${w}%` }} />
+              ))}
+            </div>
           </div>
         </GlassCard>
       )}
@@ -222,11 +256,29 @@ export default function StudioGenerate() {
             </GlassCard>
 
             {!loading && (
-              <div className="flex gap-3">
-                <Button variant="ghost" onClick={handleGenerate}>Regenerate</Button>
-                <Button fullWidth onClick={() => handleUse(editing ? editText : generated)}>
-                  Use This Script →
-                </Button>
+              <div className="space-y-3">
+                <div className="flex gap-3">
+                  <Button variant="ghost" onClick={handleGenerate}>Regenerate</Button>
+                  <Button fullWidth onClick={() => handleUse(editing ? editText : generated)}>
+                    Use This Script →
+                  </Button>
+                </div>
+                <div className="flex justify-center">
+                  {suggSent ? (
+                    <span className="text-xs text-gold">✓ Topic suggested — thank you!</span>
+                  ) : (
+                    <button
+                      onClick={async () => {
+                        if (!user) return
+                        await submitPromptSuggestion(user.id, `${occasion.replace(/^[^\w]+/, '').trim()} — ${topic}`, '', occasion.replace(/^[^\w]+/, '').trim())
+                        setSuggSent(true)
+                      }}
+                      className="text-xs text-ivory-muted hover:text-gold transition-colors"
+                    >
+                      📌 Suggest this topic for the library
+                    </button>
+                  )}
+                </div>
               </div>
             )}
           </motion.div>

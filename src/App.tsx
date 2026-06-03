@@ -24,7 +24,7 @@ const StudioLibrary = lazy(() => import('@/pages/studio/StudioLibrary'))
 const TeleprompterSession = lazy(() => import('@/pages/studio/TeleprompterSession'))
 const Debrief = lazy(() => import('@/pages/studio/Debrief'))
 const Debate = lazy(() => import('@/pages/Debate'))
-const DebateSession = lazy(() => import('@/pages/studio/TeleprompterSession')) // reused for debate
+const DebateSession = lazy(() => import('@/pages/studio/DebateSession'))
 const Analytics = lazy(() => import('@/pages/Analytics'))
 const Sessions = lazy(() => import('@/pages/Sessions'))
 const SessionReplay = lazy(() => import('@/pages/studio/Debrief')) // reused for replay
@@ -109,7 +109,7 @@ export default function App() {
 
                 {/* Full-screen routes (no sidebar) */}
                 <Route path="/studio/session" element={<TeleprompterSession />} />
-                <Route path="/debate/session" element={<TeleprompterSession />} />
+                <Route path="/debate/session" element={<DebateSession />} />
               </Route>
             </Route>
 

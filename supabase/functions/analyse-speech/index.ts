@@ -18,11 +18,17 @@ serve(async (req) => {
 
     const client = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY')! })
 
-    const systemPrompt = `You are an expert executive communication coach with 20 years of experience coaching Fortune 500 CEOs, TED speakers, and top lawyers. Analyse this speech transcript with precision and intelligence. Return ONLY a valid JSON object — no markdown, no explanation, just the JSON.`
+    const LANG_NAMES: Record<string, string> = {
+      en: 'English', pt: 'Brazilian Portuguese', es: 'Spanish',
+      fr: 'French', de: 'German', zh: 'Mandarin Chinese',
+    }
+    const languageName = LANG_NAMES[language] ?? language
+
+    const systemPrompt = `You are an expert executive communication coach with 20 years of experience coaching Fortune 500 CEOs, TED speakers, and top lawyers. Analyse this speech transcript with precision and intelligence. Respond entirely in ${languageName}. All text values in your response — strengths, improvements, vocabulary_upgrades reasons, and overall_summary — must be written in ${languageName}. Return ONLY a valid JSON object — no markdown, no explanation, just the JSON.`
 
     const userPrompt = `Analyse this ${mode} speech transcript.
 
-Language: ${language}
+Language: ${languageName}
 Speaker role: ${role}
 Mode: ${mode}
 ${occasion ? `Occasion: ${occasion}` : ''}

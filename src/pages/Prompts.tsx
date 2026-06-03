@@ -5,7 +5,7 @@ import GlassCard from '@/components/ui/GlassCard'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import { SkeletonCard } from '@/components/ui/Skeleton'
-import { getPrompts, getSavedPrompts, savePrompt, getDailyTrainingPrompts, getTrainingExercises } from '@/lib/supabase'
+import { getPrompts, getSavedPrompts, savePrompt, getDailyTrainingPrompts, getTrainingExercises, submitPromptSuggestion } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/useAuthStore'
 import type { Prompt } from '@/types'
 
@@ -31,6 +31,11 @@ export default function Prompts() {
   const [category, setCategory] = useState('All')
   const [search, setSearch] = useState('')
   const [tab, setTab] = useState<Tab>('foryou')
+  const [suggTitle, setSuggTitle] = useState('')
+  const [suggDesc, setSuggDesc] = useState('')
+  const [suggOccasion, setSuggOccasion] = useState('')
+  const [suggLoading, setSuggLoading] = useState(false)
+  const [suggDone, setSuggDone] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -44,8 +49,7 @@ export default function Prompts() {
       setSaved((s || []).map((x: { prompt_id: string }) => x.prompt_id))
       setDailyPrompts(d || [])
       setExercises(e || [])
-      setLoading(false)
-    })
+    }).catch(console.error).finally(() => setLoading(false))
   }, [user, profile])
 
   const handleSave = async (promptId: string) => {
@@ -59,6 +63,17 @@ export default function Prompts() {
     sessionStorage.setItem('gravi_session_title', p.title)
     sessionStorage.setItem('gravi_session_path', 'library')
     navigate('/studio/session')
+  }
+
+  const handleSuggest = async () => {
+    if (!user || !suggTitle.trim()) return
+    setSuggLoading(true)
+    await submitPromptSuggestion(user.id, suggTitle.trim(), suggDesc.trim(), suggOccasion.trim())
+    setSuggLoading(false)
+    setSuggDone(true)
+    setSuggTitle('')
+    setSuggDesc('')
+    setSuggOccasion('')
   }
 
   const isPro = profile?.subscription_status === 'pro'
@@ -254,6 +269,61 @@ export default function Prompts() {
                     <span className="text-gold font-semibold">{speechPrompts.length - 3} more prompts</span> available on Pro
                   </p>
                   <Button size="sm" onClick={() => navigate('/upgrade')}>Upgrade →</Button>
+                </div>
+              )}
+
+              {/* Suggest a topic — shown on For You tab only */}
+              {tab === 'foryou' && (
+                <div className="rounded-xl border border-white/8 bg-white/3 p-5 space-y-4">
+                  {suggDone ? (
+                    <div className="flex flex-col items-center gap-2 py-4 text-center">
+                      <div className="w-10 h-10 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center">
+                        <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="#D4A85A" strokeWidth="2"><polyline points="20 6 9 17 4 12"/></svg>
+                      </div>
+                      <p className="font-display text-base text-ivory">Suggestion received.</p>
+                      <p className="text-sm text-ivory-secondary">We review these regularly — yours may appear in the library soon.</p>
+                      <button onClick={() => setSuggDone(false)} className="text-xs text-gold hover:text-gold-light transition-colors mt-1">Suggest another →</button>
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <p className="text-sm font-sans font-medium text-ivory">Don't see what you need?</p>
+                        <p className="text-xs text-ivory-muted mt-0.5">Suggest a topic — we review every submission and add the best ones to the library.</p>
+                      </div>
+                      <div className="space-y-3">
+                        <input
+                          className="input-gold"
+                          placeholder="Topic title (e.g. Negotiating a pay rise)"
+                          value={suggTitle}
+                          onChange={(e) => setSuggTitle(e.target.value)}
+                          maxLength={120}
+                        />
+                        <input
+                          className="input-gold"
+                          placeholder="Occasion (e.g. Salary review, Board meeting) — optional"
+                          value={suggOccasion}
+                          onChange={(e) => setSuggOccasion(e.target.value)}
+                          maxLength={80}
+                        />
+                        <textarea
+                          className="input-gold resize-none"
+                          rows={2}
+                          placeholder="Any context or specific angle? — optional"
+                          value={suggDesc}
+                          onChange={(e) => setSuggDesc(e.target.value)}
+                          maxLength={300}
+                        />
+                      </div>
+                      <Button
+                        size="sm"
+                        disabled={!suggTitle.trim() || suggLoading}
+                        loading={suggLoading}
+                        onClick={handleSuggest}
+                      >
+                        Submit suggestion →
+                      </Button>
+                    </>
+                  )}
                 </div>
               )}
             </>

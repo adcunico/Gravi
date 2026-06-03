@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { motion } from 'framer-motion'
+import { motion, AnimatePresence } from 'framer-motion'
 import { useAuthStore } from '@/stores/useAuthStore'
-import { getDailyTrainingPrompts } from '@/lib/supabase'
+import { getDailyTrainingPrompts, deleteSession } from '@/lib/supabase'
 import GlassCard from '@/components/ui/GlassCard'
 import ScoreGauge from '@/components/ui/ScoreGauge'
 import ScoreBar from '@/components/ui/ScoreBar'
@@ -91,11 +91,14 @@ const DNA_METRICS = [
 ]
 
 export default function Dashboard() {
-  const { user, profile, sessions: storeSessions, fetchSessions } = useAuthStore()
+  const { user, profile, sessions: storeSessions, fetchSessions, invalidateSessions } = useAuthStore()
   const navigate = useNavigate()
   const [searchParams, setSearchParams] = useSearchParams()
   const [showUpgradeBanner, setShowUpgradeBanner] = useState(searchParams.get('upgraded') === '1')
   const [todayChallenge, setTodayChallenge] = useState<Prompt | null>(null)
+  const [deletedIds, setDeletedIds] = useState<Set<string>>(new Set())
+  const [confirmingId, setConfirmingId] = useState<string | null>(null)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     if (!user) return
@@ -117,7 +120,16 @@ export default function Dashboard() {
   }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const loading = storeSessions === null
-  const sessions = (storeSessions || []) as SessionRow[]
+  const sessions = ((storeSessions || []) as SessionRow[]).filter((s) => !deletedIds.has(s.id))
+
+  const handleDelete = async (sessionId: string) => {
+    setDeleting(true)
+    await deleteSession(sessionId)
+    setDeletedIds((prev) => new Set([...prev, sessionId]))
+    invalidateSessions()
+    setConfirmingId(null)
+    setDeleting(false)
+  }
 
   const lastName = profile?.full_name?.split(' ').pop() || 'there'
   const latestAnalysis = sessions[0]?.analysis
@@ -388,45 +400,74 @@ export default function Dashboard() {
           </GlassCard>
         ) : (
           <div className="space-y-2">
-            {sessions.slice(0, 5).map((session, i) => (
-              <motion.div
-                key={session.id}
-                initial={{ opacity: 0, x: -8 }}
-                animate={{ opacity: 1, x: 0 }}
-                transition={{ delay: i * 0.05 }}
-              >
-                <Link to={`/sessions/${session.id}`}>
-                  <div className="glass glass-hover rounded-xl px-5 py-4 flex items-center gap-4">
-                    <div className="w-8 h-8 rounded-full bg-gold/8 border border-gold/20 flex items-center justify-center flex-shrink-0">
-                      <PlayIcon size={14} className="text-gold ml-0.5" />
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <p className="text-sm font-sans text-ivory truncate">{session.title || 'Untitled Session'}</p>
-                      <p className="text-xs text-ivory-muted">
-                        {session.duration_seconds ? `${Math.floor(session.duration_seconds / 60)}m ${session.duration_seconds % 60}s` : '—'} ·{' '}
-                        {new Date(session.created_at).toLocaleDateString()}
-                      </p>
-                    </div>
-                    <Badge variant={session.mode === 'guided' ? 'gold' : 'subtle'} size="sm">
-                      {session.mode}
-                    </Badge>
-                    {session.analysis && (
-                      <div
-                        className={`text-sm font-semibold font-sans w-10 text-right ${
-                          session.analysis.overall_score >= 80
-                            ? 'text-gold'
-                            : session.analysis.overall_score >= 60
-                            ? 'text-gold-light'
-                            : 'text-ivory-secondary'
-                        }`}
+            <AnimatePresence initial={false}>
+              {sessions.slice(0, 5).map((session, i) => (
+                <motion.div
+                  key={session.id}
+                  initial={{ opacity: 0, x: -8 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  exit={{ opacity: 0, x: 8, height: 0, marginBottom: 0 }}
+                  transition={{ delay: i * 0.05, duration: 0.2 }}
+                >
+                  {confirmingId === session.id ? (
+                    <div className="glass rounded-xl px-5 py-4 flex items-center gap-4 border border-red-500/20">
+                      <p className="text-sm text-ivory-secondary flex-1">Delete this session?</p>
+                      <button
+                        onClick={() => handleDelete(session.id)}
+                        disabled={deleting}
+                        className="px-3 py-1.5 rounded-lg text-xs font-sans bg-red-500/20 border border-red-500/40 text-red-400 hover:bg-red-500/30 transition-all disabled:opacity-50"
                       >
-                        {session.analysis.overall_score}
-                      </div>
-                    )}
-                  </div>
-                </Link>
-              </motion.div>
-            ))}
+                        {deleting ? 'Deleting…' : 'Delete'}
+                      </button>
+                      <button
+                        onClick={() => setConfirmingId(null)}
+                        className="px-3 py-1.5 rounded-lg text-xs font-sans bg-white/5 border border-white/10 text-ivory-secondary hover:bg-white/8 transition-all"
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  ) : (
+                    <div className="group glass glass-hover rounded-xl px-5 py-4 flex items-center gap-4">
+                      <Link to={`/sessions/${session.id}`} className="flex items-center gap-4 flex-1 min-w-0">
+                        <div className="w-8 h-8 rounded-full bg-gold/8 border border-gold/20 flex items-center justify-center flex-shrink-0">
+                          <PlayIcon size={14} className="text-gold ml-0.5" />
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-sans text-ivory truncate">{session.title || 'Untitled Session'}</p>
+                          <p className="text-xs text-ivory-muted">
+                            {session.duration_seconds ? `${Math.floor(session.duration_seconds / 60)}m ${session.duration_seconds % 60}s` : '—'} ·{' '}
+                            {new Date(session.created_at).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <Badge variant={session.mode === 'guided' ? 'gold' : 'subtle'} size="sm">
+                          {session.mode}
+                        </Badge>
+                        {session.analysis && (
+                          <div
+                            className={`text-sm font-semibold font-sans w-10 text-right ${
+                              session.analysis.overall_score >= 80
+                                ? 'text-gold'
+                                : session.analysis.overall_score >= 60
+                                ? 'text-gold-light'
+                                : 'text-ivory-secondary'
+                            }`}
+                          >
+                            {session.analysis.overall_score}
+                          </div>
+                        )}
+                      </Link>
+                      <button
+                        onClick={() => setConfirmingId(session.id)}
+                        className="opacity-0 group-hover:opacity-100 transition-opacity p-1.5 rounded-lg hover:bg-red-500/10 text-ivory-muted hover:text-red-400"
+                        aria-label="Delete session"
+                      >
+                        <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.5"><polyline points="3 6 5 6 21 6"/><path d="M19 6l-1 14a2 2 0 0 1-2 2H8a2 2 0 0 1-2-2L5 6"/><path d="M10 11v6M14 11v6"/><path d="M9 6V4a1 1 0 0 1 1-1h4a1 1 0 0 1 1 1v2"/></svg>
+                      </button>
+                    </div>
+                  )}
+                </motion.div>
+              ))}
+            </AnimatePresence>
           </div>
         )}
       </div>

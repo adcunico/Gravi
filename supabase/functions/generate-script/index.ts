@@ -14,7 +14,13 @@ serve(async (req) => {
 
     const client = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY')! })
 
-    const systemPrompt = `You are an elite speechwriter for C-suite executives and world-class presenters. Write a compelling, authoritative speech in ${language === 'en' ? 'English' : language}. Tone: ${tone}. Speaker role: ${role}. No filler phrases. Every word must earn its place. Return ONLY the speech text — no titles, no markdown, no commentary.`
+    const LANG_NAMES: Record<string, string> = {
+      en: 'English', pt: 'Brazilian Portuguese', es: 'Spanish',
+      fr: 'French', de: 'German', zh: 'Mandarin Chinese',
+    }
+    const languageName = LANG_NAMES[language] ?? language
+
+    const systemPrompt = `You are an elite speechwriter for C-suite executives and world-class presenters. Write a compelling, authoritative speech entirely in ${languageName}. Every word of the speech must be in ${languageName}. Tone: ${tone}. Speaker role: ${role}. No filler phrases. Every word must earn its place. Return ONLY the speech text — no titles, no markdown, no commentary.`
 
     const userPrompt = `Write a ${length_minutes}-minute ${occasion} speech about: "${topic}".${key_points ? `\n\nKey points to include:\n${key_points}` : ''}\n\nTarget word count: ${Math.round(length_minutes * 130)} words. Strong opening, clear body, powerful close.`
 

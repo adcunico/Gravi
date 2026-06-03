@@ -12,12 +12,18 @@ serve(async (req) => {
     const { role, language, count = 3 } = await req.json()
     const client = new Anthropic({ apiKey: Deno.env.get('ANTHROPIC_API_KEY')! })
 
+    const LANG_NAMES: Record<string, string> = {
+      en: 'English', pt: 'Brazilian Portuguese', es: 'Spanish',
+      fr: 'French', de: 'German', zh: 'Mandarin Chinese',
+    }
+    const languageName = LANG_NAMES[language] ?? language
+
     const message = await client.messages.create({
       model: 'claude-haiku-4-5-20251001',
       max_tokens: 800,
       messages: [{
         role: 'user',
-        content: `Generate ${count} debate topic(s) highly relevant to a ${role} professional in ${language}. Return ONLY valid JSON array: [{"title": string, "description": string, "category": string, "difficulty": "beginner"|"intermediate"|"advanced", "language": "${language}", "is_featured": false}]`,
+        content: `Generate ${count} debate topic(s) highly relevant to a ${role} professional. Respond entirely in ${languageName} — the title and description must be written in ${languageName}. Return ONLY valid JSON array: [{"title": string, "description": string, "category": string, "difficulty": "beginner"|"intermediate"|"advanced", "language": "${language}", "is_featured": false}]`,
       }],
     })
 

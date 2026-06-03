@@ -110,6 +110,13 @@ export const getTrainingExercises = (language = 'en') =>
     .order('is_featured', { ascending: false })
     .order('category', { ascending: true })
 
+// ── Prompt suggestions ────────────────────────────────────────────
+export const submitPromptSuggestion = (userId: string, title: string, description: string, occasion: string) =>
+  supabase.from('prompt_suggestions').insert({ user_id: userId, title, description, occasion })
+
+export const getUserSuggestions = (userId: string) =>
+  supabase.from('prompt_suggestions').select('*').eq('user_id', userId).order('created_at', { ascending: false })
+
 // ── Debate topics ─────────────────────────────────────────────────
 export const getDebateTopics = (language = 'en', limit = 50) =>
   supabase

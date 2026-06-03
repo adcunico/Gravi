@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useState } from 'react'
 
 interface Props {
   label: string
@@ -10,11 +10,10 @@ interface Props {
 
 export default function ScoreBar({ label, score, note, animate = true, delay = 0 }: Props) {
   const [width, setWidth] = useState(animate ? 0 : score)
-  const hasAnimated = useRef(false)
 
   useEffect(() => {
-    if (!animate || hasAnimated.current) return
-    hasAnimated.current = true
+    if (!animate) return
+    setWidth(0)
     const timer = setTimeout(() => setWidth(score), delay * 1000)
     return () => clearTimeout(timer)
   }, [score, animate, delay])
@@ -34,7 +33,7 @@ export default function ScoreBar({ label, score, note, animate = true, delay = 0
           style={{
             width: `${width}%`,
             background: 'linear-gradient(90deg, #D4A85A, #F2D28B)',
-            transition: animate ? `width 1s cubic-bezier(0.4,0,0.2,1) ${delay}s` : 'none',
+            transition: animate ? 'width 1s cubic-bezier(0.4,0,0.2,1)' : 'none',
           }}
         />
       </div>
