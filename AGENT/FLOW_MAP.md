@@ -13,7 +13,7 @@
 | Sign Up → Onboarding | 🔶 Partial | Works, but if Supabase email confirmation is on, user must click link first |
 | Onboarding → Dashboard | ✅ Done | 3-step flow saves profile, redirects correctly |
 | Dashboard → Record | ✅ Done | Feature cards navigate to /studio |
-| Record → Processing → Debrief | ⚠️ Has Issues | Claude model ID fixed. BUT: OpenAI key still looks corrupted (`ysk-`) → transcription will fail until user regenerates key |
+| Record → Processing → Debrief | ✅ Done | Claude model fixed; OpenAI key regenerated; DB schema applied; full flow working |
 | Debrief → Paywall (after 3rd session) | ✅ Done | Session count gate implemented in TeleprompterSession. Free users see paywall modal after 3 sessions |
 | Upgrade → Stripe → Success | ✅ Done | Post-upgrade gold banner shown on Dashboard when `?upgraded=1` param present |
 
@@ -28,7 +28,7 @@
 | Google OAuth | ✅ Done | Implemented, redirects to /dashboard |
 | Forgot password | ✅ Done | Form submits correctly; email link goes to `/reset-password` which now exists |
 | Protected route redirect | ✅ Done | AuthGuard, OnboardingGuard, PublicGuard all correct |
-| Post-login onboarding redirect | 🔶 Partial | OnboardingGuard catches unonboarded users, but SignIn race condition can cause brief flash of /dashboard |
+| Post-login onboarding redirect | ✅ Done | SignIn race condition fixed; PublicGuard drives redirect cleanly |
 
 ---
 
@@ -54,7 +54,7 @@
 | Script → sessionStorage → TeleprompterSession | ✅ Done | All 3 paths set sessionStorage and navigate to /studio/session |
 | Live Record (MediaRecorder) | ✅ Done | getUserMedia, MediaRecorder, pause/resume, countdown |
 | Gold waveform | ✅ Done | Three.js waveform + CSS fallback for no-WebGL |
-| Transcription edge function call | ⚠️ Has Issues | OpenAI key still corrupted (starts `ysk-`) — user must regenerate |
+| Transcription edge function call | ✅ Done | OpenAI key regenerated and set as secret |
 | Analysis edge function call | ✅ Done | Model ID fixed to `claude-sonnet-4-6` |
 | Processing overlay (3 steps) | ✅ Done | Step-by-step status messages during processing |
 | Redirect to debrief on completion | ✅ Done | Routes to `/debate/debrief/:id` for debate; `/studio/debrief/:id` for guided |
@@ -76,7 +76,7 @@
 | Vocabulary upgrades panel | ✅ Done | Shows in Overview tab |
 | Filler words panel | ✅ Done | Shows in Delivery tab |
 | Transcript display | ✅ Done | Transcript tab added to Debrief; shows word count + full text |
-| Audio playback | ❌ Missing | Audio blob not uploaded to storage; no player |
+| Audio playback | ✅ Done | Uploaded to session-audio bucket; signed URL audio player in Voice tab for Pro users |
 | PDF export (Pro) | ✅ Done | `window.print()` implemented, Pro-gated |
 | Practice Again CTA | ✅ Done | Re-populates sessionStorage and navigates back to /studio/session |
 | New Session / View All Sessions CTAs | ✅ Done | |
@@ -97,7 +97,7 @@
 | Format chips (2min / 5min / 10min) | ✅ Done | Labelled Impromptu/Structured/Extended |
 | Argument hints accordion | ✅ Done | Collapsible hints panel |
 | Debate recording screen | ✅ Done | Reuses TeleprompterSession, detects `isDebate` from sessionStorage |
-| analyse-speech edge function (debate mode) | ⚠️ Has Issues | Code correct but invalid model ID |
+| analyse-speech edge function (debate mode) | ✅ Done | Model ID fixed to claude-sonnet-4-6 |
 | Debate debrief (Argument + 3 tabs) | ✅ Done | Debate tab shows argument/logic/conviction scores |
 
 ---
@@ -155,4 +155,4 @@
 
 ---
 
-_Last updated by agent: 2026-06-02 (Session 3)_
+_Last updated by agent: 2026-06-02 (Session 4)_

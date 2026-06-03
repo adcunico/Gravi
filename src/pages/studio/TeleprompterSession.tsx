@@ -256,6 +256,22 @@ Speak confidently for ${debateFormat} minutes.`
         console.error('Analysis save error:', analysisErr)
       }
 
+      // Upload audio to storage (best-effort — non-fatal)
+      try {
+        const filePath = `${user!.id}/${sessionData.id}.webm`
+        const { error: uploadErr } = await supabase.storage
+          .from('session-audio')
+          .upload(filePath, audioBlob, { contentType: 'audio/webm' })
+        if (!uploadErr) {
+          await supabase
+            .from('sessions')
+            .update({ audio_url: filePath })
+            .eq('id', sessionData.id)
+        }
+      } catch {
+        // Audio upload failure doesn't block the debrief
+      }
+
       if (isDebate) {
         sessionStorage.removeItem('gravi_debate_topic')
         sessionStorage.removeItem('gravi_debate_position')

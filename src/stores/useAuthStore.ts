@@ -1,5 +1,5 @@
 import { create } from 'zustand'
-import { supabase, getProfile } from '@/lib/supabase'
+import { supabase, getProfile, upsertProfile } from '@/lib/supabase'
 import type { Profile } from '@/types'
 import type { User } from '@supabase/supabase-js'
 
@@ -26,7 +26,17 @@ export const useAuthStore = create<AuthState>((set, get) => ({
 
   fetchProfile: async (userId) => {
     const { data } = await getProfile(userId)
-    if (data) set({ profile: data })
+    if (data) {
+      set({ profile: data })
+      return
+    }
+    // Profile missing (user pre-dates DB setup) — create it from auth metadata
+    const user = get().user
+    const { data: created } = await upsertProfile({
+      id: userId,
+      full_name: user?.user_metadata?.full_name || user?.email || '',
+    })
+    if (created) set({ profile: created })
   },
 
   init: async () => {

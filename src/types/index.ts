@@ -37,6 +37,7 @@ export interface Session {
   title: string
   script_used: string | null
   transcript: string | null
+  audio_url: string | null
   duration_seconds: number
   language: Language
   occasion: string | null

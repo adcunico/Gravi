@@ -7,7 +7,7 @@ import GlassCard from '@/components/ui/GlassCard'
 import Badge from '@/components/ui/Badge'
 import Button from '@/components/ui/Button'
 import { Skeleton } from '@/components/ui/Skeleton'
-import { getSessionById } from '@/lib/supabase'
+import { getSessionById, supabase } from '@/lib/supabase'
 import { useAuthStore } from '@/stores/useAuthStore'
 import type { Session, Analysis } from '@/types'
 import { SCORE_LABEL } from '@/types'
@@ -22,6 +22,7 @@ export default function Debrief() {
   const [analysis, setAnalysis] = useState<Analysis | null>(null)
   const [loading, setLoading] = useState(true)
   const [tab, setTab] = useState<Tab>('overview')
+  const [audioSrc, setAudioSrc] = useState<string | null>(null)
 
   useEffect(() => {
     if (!sessionId) return
@@ -35,6 +36,17 @@ export default function Debrief() {
   }, [sessionId])
 
   const isPro = profile?.subscription_status === 'pro'
+
+  // Generate signed URL for Pro users who have audio
+  useEffect(() => {
+    if (!isPro || !session?.audio_url) return
+    supabase.storage
+      .from('session-audio')
+      .createSignedUrl(session.audio_url, 3600)
+      .then(({ data }) => {
+        if (data?.signedUrl) setAudioSrc(data.signedUrl)
+      })
+  }, [session, isPro])
 
   if (loading) {
     return (
@@ -244,6 +256,42 @@ export default function Debrief() {
           )}
 
           {tab === 'voice' && (
+            <>
+              {isPro && audioSrc && (
+                <GlassCard>
+                  <div className="flex items-center gap-2 mb-3">
+                    <div className="w-1 h-5 rounded-full bg-gold" />
+                    <h3 className="font-sans font-semibold text-ivory">Session Recording</h3>
+                  </div>
+                  <audio
+                    controls
+                    src={audioSrc}
+                    className="w-full rounded-lg accent-[#D4A85A]"
+                    style={{ colorScheme: 'dark' }}
+                  />
+                </GlassCard>
+              )}
+              {isPro && session?.audio_url && !audioSrc && (
+                <GlassCard>
+                  <p className="text-sm text-ivory-muted">Loading audio…</p>
+                </GlassCard>
+              )}
+              {!isPro && session?.audio_url && (
+                <GlassCard
+                  className="cursor-pointer"
+                  onClick={() => navigate('/upgrade')}
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-full bg-gold/10 border border-gold/30 flex items-center justify-center flex-shrink-0">
+                      <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#D4A85A" strokeWidth="2.5"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                    </div>
+                    <div>
+                      <p className="text-sm font-sans text-ivory">Session recording available</p>
+                      <p className="text-xs text-gold">Upgrade to Pro to listen →</p>
+                    </div>
+                  </div>
+                </GlassCard>
+              )}
             <GlassCard>
               <div className="space-y-5">
                 <div>
@@ -273,6 +321,7 @@ export default function Debrief() {
                 <p className="text-xs text-ivory-muted">Ideal range for professional speech: 120–160 WPM</p>
               </div>
             </GlassCard>
+            </>
           )}
           {tab === 'transcript' && session?.transcript && (
             <GlassCard>

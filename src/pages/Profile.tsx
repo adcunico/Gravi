@@ -50,6 +50,7 @@ export default function Profile() {
   const [language, setLanguage] = useState<Language>(profile?.language || 'en')
   const [saving, setSaving] = useState(false)
   const [deleteModal, setDeleteModal] = useState(false)
+  const [deleteLoading, setDeleteLoading] = useState(false)
   const [portalLoading, setPortalLoading] = useState(false)
 
   useEffect(() => {
@@ -71,6 +72,16 @@ export default function Profile() {
     await upsertProfile({ id: user.id, full_name: name, role, goals, language })
     await fetchProfile(user.id)
     setSaving(false)
+  }
+
+  const handleDeleteAccount = async () => {
+    setDeleteLoading(true)
+    try {
+      await callEdgeFunction('delete-account', {})
+    } finally {
+      await signOut()
+      navigate('/')
+    }
   }
 
   const handleManageSubscription = async () => {
@@ -223,7 +234,7 @@ export default function Profile() {
           </p>
           <div className="flex gap-3">
             <Button variant="ghost" fullWidth onClick={() => setDeleteModal(false)}>Cancel</Button>
-            <Button variant="danger" fullWidth onClick={() => {}}>Delete Forever</Button>
+            <Button variant="danger" fullWidth loading={deleteLoading} onClick={handleDeleteAccount}>Delete Forever</Button>
           </div>
         </div>
       </Modal>
